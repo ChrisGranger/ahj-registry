@@ -12,7 +12,9 @@ from .serializers import AHJSerializer, EditSerializer, ContactSerializer, \
     FeeStructureSerializer, AHJInspectionSerializer
 
 
+
 def add_edit(edit_dict: dict):
+
     edit = Edit()
     edit.ChangedBy = edit_dict.get('User')
     edit.DateRequested = datetime.date.today()
@@ -27,7 +29,6 @@ def add_edit(edit_dict: dict):
     edit.EditType = edit_dict.get('EditType')
     edit.save()
     return edit
-
 
 def apply_edits():  #TODO: set status of additions false if rejected; translate enum text
     ready_edits = Edit.objects.filter(
@@ -123,7 +124,7 @@ def get_serializer(row):
 
 
 @api_view(['POST'])
-def edit_addition(request):
+def edit_addition(request):  # TODO: prevent adding Address/Location directly? It shouldn't happen
     """
     Private front-end endpoint for passing an edit type=Addition request
     """
@@ -139,7 +140,6 @@ def edit_addition(request):
                     ahj = None if ahjpk is None else AHJ.objects.get(AHJPK=ahjpk)
                     inspectionid = request.data.get('InspectionID')
                     inspection = None if inspectionid is None else AHJInspection.objects.get(InspectionID=inspectionid)
-
                     if 'AHJPK' in [field.name for field in model._meta.fields]:
                         """
                         The addition is a one-to-many relation to AHJ.
@@ -170,7 +170,7 @@ def edit_addition(request):
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
-def edit_deletion(request):
+def edit_deletion(request):  # TODO: Make this called for rejecting additions to set their Status field to false
     """
     Private front-end endpoint for passing an edit type=Deletion request
     """
@@ -195,6 +195,7 @@ def edit_deletion(request):
                           'SourceTable'  : edit_info_row.__class__.__name__,
                           'SourceColumn' : row.get_relation_status_field(),
                           'SourceRow'    : edit_info_row.pk,
+<<<<<<< HEAD
                           'OldValue'     : True,
                           'NewValue'     : False,
                           'EditType'     : 'D' }
@@ -202,6 +203,14 @@ def edit_deletion(request):
 
                     if source_table == 'Contact':
                         response_data.append(ContactSerializer(row).data)
+=======
+                          'OldValue'     : getattr(edit_info_row, row.get_relation_status_field()),  # None or True
+                          'NewValue'     : False }
+                    edit = add_edit(e)
+
+                    if source_table == 'Contact':
+                        response_data.append(ContactSerializer(row).data)  # TODO: Why need contact?
+>>>>>>> Refactored edit code to support editing Address/Location on backned
                     else:
                         response_data.append(EditSerializer(edit).data)
         return Response(response_data, status=response_status)

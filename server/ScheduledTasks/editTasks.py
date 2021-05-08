@@ -18,3 +18,4 @@ def edits_take_effect():
     with connection.cursor() as cursor:
         # apply_edits()
         pass
+

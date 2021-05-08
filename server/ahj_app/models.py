@@ -232,6 +232,8 @@ class AHJInspectionContact(models.Model):
     def get_relation_status_field(self):
         return 'ContactStatus'
 
+
+
     class Meta:
         managed = True
         db_table = 'AHJInspectionContact'
@@ -316,7 +318,7 @@ class EngineeringReviewRequirement(models.Model):
     EngineeringReviewType = models.ForeignKey('EngineeringReviewType', on_delete=models.DO_NOTHING, db_column='EngineeringReviewTypeID', null=True)
     RequirementLevel = models.ForeignKey('RequirementLevel', on_delete=models.DO_NOTHING, db_column='RequirementLevelID', null=True)
     RequirementNotes = models.CharField(db_column='RequirementNotes', max_length=255, blank=True)
-    StampType = models.ForeignKey('StampType', on_delete=models.DO_NOTHING, db_column='StampTypeID', null=True)
+    StampType = models.CharField(db_column='StampType', choices=STAMP_TYPE_CHOICES, max_length=7)
     EngineeringReviewRequirementStatus = models.BooleanField(db_column='EngineeringReviewRequirementStatus', null=True)
 
     class Meta:

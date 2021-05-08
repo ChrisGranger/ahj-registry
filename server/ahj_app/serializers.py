@@ -285,6 +285,7 @@ class EditSerializer(serializers.Serializer):
     Inspection = AHJInspectionSerializer(source='InspectionID')  # TODO: should be int?
     DataSourceComment = serializers.CharField()
 
+
     def create(self):
         return Edit(**self.validated_data)
 
