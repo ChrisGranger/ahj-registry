@@ -232,8 +232,6 @@ class AHJInspectionContact(models.Model):
     def get_relation_status_field(self):
         return 'ContactStatus'
 
-
-
     class Meta:
         managed = True
         db_table = 'AHJInspectionContact'
