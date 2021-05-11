@@ -2,7 +2,10 @@ import csv
 import os
 from functools import lru_cache
 import datetime
+<<<<<<< HEAD
 
+=======
+>>>>>>> Fixed upload script not properly handling DataSourceComments --UNTESTED
 from django.apps import apps
 from django.contrib.gis.utils import LayerMapping
 from .models import *
@@ -401,6 +404,21 @@ def load_ahj_data_csv():
                 create_edit_objects(ahj,'WindCodeID',user,dsc,wcVal)
             print('AHJ {0}: {1}'.format(ahj.AHJID, i))
             i += 1
+            if not ahj.BuildingCodeID is None:
+                bcVal = ahj_app_buildingcode.objects.get(BuildingCodeID=ahj.BuildingCodeID).Value
+                create_edit_objects(ahj,'BuildingCodeID',user.UserID,dsc,bcVal)
+            if not ahj.FireCodeID is None:
+                fcVal = ahj_app_firecode.objects.get(FireCodeID=ahj.FireCodeID).Value
+                create_edit_objects(ahj,'FireCodeID',user.UserID,dsc,fcVal)
+            if not ahj.ResidentialCodeID is None:
+                rcVal = ahj_app_residentialcode.objects.get(ResidentialCodeID=ahj.ResidentialCodeID).Value
+                create_edit_objects(ahj,'ResidentialCodeID',user.UserID,dsc,rcVal)
+            if not ahj.ElectricCodeID is None:
+                ecVal = ahj_app_electriccode.objects.get(ElectricCodeID=ahj.ElectricCodeID).Value
+                create_edit_objects(ahj,'ElectricCodeID',user.UserID,dsc,ecVal)
+            if not ahj.WindCodeID is None:
+                wcVal = ahj_app_windcode.objects.get(WindCodeID=ahj.WindCodeID).Value
+                create_edit_objects(ahj,'WindCodeID',user.UserID,dsc,wcVal)
 
 
 state_fips_to_abbr = {
