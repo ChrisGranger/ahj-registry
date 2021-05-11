@@ -122,15 +122,9 @@ class Contact(models.Model):
     FirstName = models.CharField(db_column='FirstName', max_length=255, blank=True)
     MiddleName = models.CharField(db_column='MiddleName', max_length=255, blank=True)
     LastName = models.CharField(db_column='LastName', max_length=255, blank=True)
-<<<<<<< HEAD
     HomePhone = models.CharField(db_column='HomePhone', max_length=31, blank=True)
     MobilePhone = models.CharField(db_column='MobilePhone', max_length=31, blank=True)
     WorkPhone = models.CharField(db_column='WorkPhone', max_length=31, blank=True)
-=======
-    HomePhone = models.CharField(db_column='HomePhone', max_length=15, blank=True)
-    MobilePhone = models.CharField(db_column='MobilePhone', max_length=15, blank=True)
-    WorkPhone = models.CharField(db_column='WorkPhone', max_length=15, blank=True)
->>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
     ContactType = models.ForeignKey('ContactType', on_delete=models.DO_NOTHING, db_column='ContactTypeID', null=True)
     ContactTimezone = models.CharField(db_column='ContactTimezone', max_length=255, blank=True)
     Description = models.CharField(db_column='Description', max_length=255, blank=True)
@@ -321,14 +315,10 @@ class EngineeringReviewRequirement(models.Model):
     Description = models.CharField(db_column='Description', max_length=255, blank=True)
     EngineeringReviewType = models.ForeignKey('EngineeringReviewType', on_delete=models.DO_NOTHING, db_column='EngineeringReviewTypeID', null=True)
     RequirementLevel = models.ForeignKey('RequirementLevel', on_delete=models.DO_NOTHING, db_column='RequirementLevelID', null=True)
-    RequirementNotes = models.CharField(db_column='RequirementNotes', max_length=255, blank=True)
-<<<<<<< HEAD
-    StampType = models.CharField(db_column='StampType', choices=STAMP_TYPE_CHOICES, max_length=7)
+    RequirementNotes = models.CharField(db_column='RequirementNotes', max_length=255, blank=True
     EngineeringReviewRequirementStatus = models.BooleanField(db_column='EngineeringReviewRequirementStatus', null=True)
-=======
+
     StampType = models.ForeignKey('StampType', on_delete=models.DO_NOTHING, db_column='StampTypeID', null=True)
-    EngineeringReviewRequirementStatus = models.IntegerField(db_column='EngineeringReviewRequirementStatus')
->>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
 
     class Meta:
         managed = True
@@ -336,7 +326,6 @@ class EngineeringReviewRequirement(models.Model):
 
     SERIALIZER_EXCLUDED_FIELDS = ['EngineeringReviewRequirementID', 'EngineeringReviewRequirementStatus']
 
-<<<<<<< HEAD
     def create_relation_to(self, to):
         if to.__class__.__name__ == 'AHJ':
             self.EngineeringReviewRequirementStatus = None
@@ -381,8 +370,6 @@ class DocumentSubmissionMethod(models.Model):
     def get_relation_status_field(self):
         return 'MethodStatus'
 
-=======
->>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
 class AHJDocumentSubmissionMethodUse(models.Model):
     UseID = models.AutoField(db_column='UseID', primary_key=True)
     AHJPK = models.ForeignKey(AHJ, models.DO_NOTHING, db_column='AHJPK')
@@ -399,7 +386,6 @@ class AHJDocumentSubmissionMethodUse(models.Model):
     def get_value(self):
         return self.DocumentSubmissionMethodID.Value
 
-<<<<<<< HEAD
     def get_relation_status_field(self):
         return 'MethodStatus'
 
@@ -431,8 +417,6 @@ class PermitIssueMethod(models.Model):
     def get_relation_status_field(self):
         return 'MethodStatus'
 
-=======
->>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
 class AHJPermitIssueMethodUse(models.Model):
     UseID = models.AutoField(db_column='UseID', primary_key=True)
     AHJPK = models.ForeignKey(AHJ, models.DO_NOTHING, db_column='AHJPK')

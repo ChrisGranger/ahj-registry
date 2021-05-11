@@ -195,7 +195,6 @@ def edit_deletion(request):  # TODO: Make this called for rejecting additions to
                           'SourceTable'  : edit_info_row.__class__.__name__,
                           'SourceColumn' : row.get_relation_status_field(),
                           'SourceRow'    : edit_info_row.pk,
-<<<<<<< HEAD
                           'OldValue'     : True,
                           'NewValue'     : False,
                           'EditType'     : 'D' }
@@ -203,14 +202,6 @@ def edit_deletion(request):  # TODO: Make this called for rejecting additions to
 
                     if source_table == 'Contact':
                         response_data.append(ContactSerializer(row).data)
-=======
-                          'OldValue'     : getattr(edit_info_row, row.get_relation_status_field()),  # None or True
-                          'NewValue'     : False }
-                    edit = add_edit(e)
-
-                    if source_table == 'Contact':
-                        response_data.append(ContactSerializer(row).data)  # TODO: Why need contact?
->>>>>>> Refactored edit code to support editing Address/Location on backned
                     else:
                         response_data.append(EditSerializer(edit).data)
         return Response(response_data, status=response_status)

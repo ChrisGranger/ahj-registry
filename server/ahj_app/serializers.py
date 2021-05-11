@@ -36,10 +36,6 @@ class OrangeButtonSerializer(serializers.Field):
         return ob_obj
 
 class EnumModelSerializer(serializers.Serializer):
-<<<<<<< HEAD
-=======
-    ID = serializers.IntegerField(source='pk')
->>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
     Value = serializers.CharField()
 
     def get_attribute(self, instance):
@@ -49,19 +45,11 @@ class EnumModelSerializer(serializers.Serializer):
         else:
             return attribute
 
-<<<<<<< HEAD
     def to_representation(self, value):
         if type(value) is dict and 'Value' in value and value['Value'] == '':
             return value
         return super().to_representation(value)
 
-=======
-    def to_representation(self, err):
-        if self.context.get('is_public_view', False):
-            if 'ID' in self.fields:
-                self.fields.pop('ID')
-        return super().to_representation(err)
->>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
 
 class FeeStructureSerializer(serializers.Serializer):
     FeeStructurePK = OrangeButtonSerializer()
