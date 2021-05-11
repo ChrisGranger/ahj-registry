@@ -1,7 +1,11 @@
 import csv
 import os
 from functools import lru_cache
+<<<<<<< HEAD
 import datetime
+=======
+
+>>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
 from django.apps import apps
 from django.contrib.gis.utils import LayerMapping
 from .models import *
@@ -201,11 +205,14 @@ ENUM_FIELDS = (
     'InspectionType'
 )
 
+<<<<<<< HEAD
 ENUM_PLURALS_TRANSLATE = {
     'DocumentSubmissionMethods': 'DocumentSubmissionMethod',
     'PermitIssueMethods': 'PermitIssueMethod'
 }
 
+=======
+>>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
 
 def add_enum_values():
     """
@@ -294,8 +301,11 @@ def get_enum_value_row(enum_field, enum_value):
     """
     Finds the row of the enum table given the field name and its enum value.
     """
+<<<<<<< HEAD
     # Translate plural, if given
     enum_field = ENUM_PLURALS_TRANSLATE[enum_field] if enum_field in ENUM_PLURALS_TRANSLATE else enum_field
+=======
+>>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
     return apps.get_model('ahj_app', enum_field).objects.get(Value=enum_value)
 
 
@@ -309,16 +319,21 @@ def enum_values_to_primary_key(ahj_dict):
             ahj_dict[field] = enum_values_to_primary_key(ahj_dict[field])
         elif type(ahj_dict[field]) is list:
             for i in range(len(ahj_dict[field])):
+<<<<<<< HEAD
                 if type(ahj_dict[field][i]) is dict:
                     ahj_dict[field][i] = enum_values_to_primary_key(ahj_dict[field][i])
                 else:  # Array of enum values
                     ahj_dict[field][i] = get_enum_value_row(field, ahj_dict[field][i])
+=======
+                ahj_dict[field][i] = enum_values_to_primary_key(ahj_dict[field][i])
+>>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
         else:
             if field in ENUM_FIELDS:
                 ahj_dict[field] = get_enum_value_row(field, ahj_dict[field])
     return ahj_dict
 
 
+<<<<<<< HEAD
 def create_admin_user():
     user = {}
     user['Username'] = 'admin'
@@ -351,6 +366,8 @@ def create_edit_objects(ahj_obj,field_string,userID,DSC,newVal):
     return Edit.objects.create(**edit_dict)
 
 
+=======
+>>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
 def load_ahj_data_csv():
     user = create_admin_user()
     with open(BASE_DIR_SHP + 'AHJRegistryData/ahjregistrydata.csv') as file:

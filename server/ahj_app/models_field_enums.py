@@ -87,7 +87,10 @@ class AHJLevelCode(models.Model):
     Value = models.CharField(db_column='Value', unique=True, choices=AHJ_LEVEL_CODE_CHOICES, max_length=3)
 
 
+<<<<<<< HEAD
 # DocumentSubmissionMethod model is in models.py
+=======
+>>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
 DOCUMENT_SUBMISSION_METHOD_CHOICES = [
     ('Epermitting', 'Epermitting'),
     ('Email', 'Email'),
@@ -96,7 +99,15 @@ DOCUMENT_SUBMISSION_METHOD_CHOICES = [
 ]
 
 
+<<<<<<< HEAD
 # PermitIssueMethod model is in models.py
+=======
+class DocumentSubmissionMethod(models.Model):
+    DocumentSubmissionMethodID = models.AutoField(db_column='DocumentSubmissionMethodID', primary_key=True)
+    Value = models.CharField(db_column='Value', unique=True, choices=DOCUMENT_SUBMISSION_METHOD_CHOICES, max_length=11)
+
+
+>>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
 PERMIT_ISSUE_METHOD_CHOICES = [
     ('Epermitting', 'Epermitting'),
     ('Email', 'Email'),
@@ -105,6 +116,14 @@ PERMIT_ISSUE_METHOD_CHOICES = [
 ]
 
 
+<<<<<<< HEAD
+=======
+class PermitIssueMethod(models.Model):
+    PermitIssueMethodID = models.AutoField(db_column='PermitIssueMethodID', primary_key=True)
+    Value = models.CharField(db_column='Value', unique=True, choices=PERMIT_ISSUE_METHOD_CHOICES, max_length=11)
+
+
+>>>>>>> Added separate tables for enum values; updated serializer and data uploading scripts
 ADDRESS_TYPE_CHOICES = [
     ('Mailing', 'Mailing'),
     ('Billing', 'Billing'),
