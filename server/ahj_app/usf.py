@@ -2,10 +2,6 @@ import csv
 import os
 from functools import lru_cache
 import datetime
-<<<<<<< HEAD
-
-=======
->>>>>>> Fixed upload script not properly handling DataSourceComments --UNTESTED
 from django.apps import apps
 from django.contrib.gis.utils import LayerMapping
 from .models import *

@@ -6,10 +6,12 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import AHJInspection, AHJContactRepresentative, AHJ, Edit
+from .models import AHJInspection, AHJContactRepresentative, AHJ, Edit, User, AddressType, ContactType
 from .serializers import AHJSerializer, EditSerializer, ContactSerializer, \
     EngineeringReviewRequirementSerializer, PermitIssueMethodUseSerializer, DocumentSubmissionMethodUseSerializer, \
     FeeStructureSerializer, AHJInspectionSerializer
+
+from .usf import *
 
 
 
@@ -69,8 +71,12 @@ def create_row(model, obj):
     field_dict = {}
     rel_one_to_one = []
     rel_many_to_many = []
+    # if 'Address' in obj.keys():
+    #     obj['Address']['AddressType'] = AddressType.objects.get(AddressTypeID=1)
     for field, value in obj.items():
-        if type(value) is dict:
+        if value == '':
+            continue
+        elif type(value) is dict:
             """
             NOTE: This assumes the field name matches the name of its model!
             For example, a 'Contact' has the field 'Address', and Address is a model
@@ -83,7 +89,10 @@ def create_row(model, obj):
             for v in value:
                 rel_many_to_many.append(create_row(apps.get_model('ahj_app', field), v))
         else:
-            field_dict[field] = value
+            if field in ENUM_FIELDS:
+                field_dict[field] = get_enum_value_row(field, value)
+            else:
+                field_dict[field] = value
     model_fields = model._meta.fields
 
     # Establish all one-to-one relations with row
@@ -150,7 +159,7 @@ def edit_addition(request):  # TODO: prevent adding Address/Location directly? I
                     row = create_row(model, obj)
                     parent_row = ahj if inspection is None else inspection
                     edit_info_row = row.create_relation_to(parent_row)
-                    e = { 'User'         : request.user,
+                    e = { 'User'         : User.objects.get(Username='admin'),
                           'AHJPK'        : ahj,
                           'InspectionID' : inspection,
                           'SourceTable'  : edit_info_row.__class__.__name__,
@@ -223,7 +232,7 @@ def edit_update(request):
                 model = apps.get_model('ahj_app', e['SourceTable'])
                 row = model.objects.get(pk=e['SourceRow'])
                 e['OldValue'] = getattr(row, e['SourceColumn'])
-                e['User'] = request.user
+                e['User'] = User.objects.get(Username="admin")
                 e['InspectionID'] = None if e['InspectionID'] is None else AHJInspection.objects.get(InspectionID=e['InspectionID'])
                 e['EditType'] = 'U'
                 edit = add_edit(e)

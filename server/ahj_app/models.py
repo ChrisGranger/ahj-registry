@@ -169,6 +169,7 @@ class Contact(models.Model):
     def get_relation_status_field(self):
         return 'ContactStatus'
 
+
 class AHJContactRepresentative(models.Model):
     RepresentativeID = models.AutoField(db_column='RepresentativeID', primary_key=True)
     AHJPK = models.ForeignKey(AHJ, models.DO_NOTHING, db_column='AHJPK')
@@ -177,6 +178,10 @@ class AHJContactRepresentative(models.Model):
 
     def get_relation_status_field(self):
         return 'ContactStatus'
+    
+    def get_obj_id(self):
+        return ContactID.Value
+
 
     class Meta:
         managed = True
@@ -232,6 +237,9 @@ class AHJInspectionContact(models.Model):
     def get_relation_status_field(self):
         return 'ContactStatus'
 
+    def get_obj_id(self):
+        return ContactID.Value
+
     class Meta:
         managed = True
         db_table = 'AHJInspectionContact'
@@ -269,6 +277,13 @@ class FeeStructure(models.Model):
     def get_relation_status_field(self):
         return 'FeeStructureStatus'
 
+map_fields = (
+    'AHJContactRepresentative',
+    'AHJInspectionContact',
+    'AHJPermitIssueMethodUse',
+    'AHJDocumentSubmissionMethodUse'
+)
+
 class Edit(models.Model):
     EditID = models.AutoField(db_column='EditID', primary_key=True)
     ChangedBy = models.ForeignKey('User', models.DO_NOTHING, db_column='ChangedBy', related_name='related_primary_edit')
@@ -293,6 +308,7 @@ class Edit(models.Model):
         managed = True
         db_table = 'Edit'
 
+    
 class Location(models.Model):
     LocationID = models.AutoField(db_column='LocationID', primary_key=True)
     Altitude = models.DecimalField(db_column='Altitude', max_digits=15, decimal_places=6, null=True)
@@ -315,7 +331,7 @@ class EngineeringReviewRequirement(models.Model):
     Description = models.CharField(db_column='Description', max_length=255, blank=True)
     EngineeringReviewType = models.ForeignKey('EngineeringReviewType', on_delete=models.DO_NOTHING, db_column='EngineeringReviewTypeID', null=True)
     RequirementLevel = models.ForeignKey('RequirementLevel', on_delete=models.DO_NOTHING, db_column='RequirementLevelID', null=True)
-    RequirementNotes = models.CharField(db_column='RequirementNotes', max_length=255, blank=True
+    RequirementNotes = models.CharField(db_column='RequirementNotes', max_length=255, blank=True)
     EngineeringReviewRequirementStatus = models.BooleanField(db_column='EngineeringReviewRequirementStatus', null=True)
 
     StampType = models.ForeignKey('StampType', on_delete=models.DO_NOTHING, db_column='StampTypeID', null=True)
@@ -389,6 +405,9 @@ class AHJDocumentSubmissionMethodUse(models.Model):
     def get_relation_status_field(self):
         return 'MethodStatus'
 
+    def get_obj_id(self):
+        return DocumentSubmissionMethodID.Value
+
 class PermitIssueMethod(models.Model):
     PermitIssueMethodID = models.AutoField(db_column='PermitIssueMethodID', primary_key=True)
     Value = models.CharField(db_column='Value', choices=PERMIT_ISSUE_METHOD_CHOICES, unique=True, max_length=11)
@@ -435,6 +454,9 @@ class AHJPermitIssueMethodUse(models.Model):
 
     def get_relation_status_field(self):
         return 'MethodStatus'
+
+    def get_obj_id(self):
+        return PermitIssueMethodID.Value
 
 class Polygon(models.Model):
     PolygonID = models.AutoField(db_column='PolygonID', primary_key=True)

@@ -120,6 +120,7 @@ class ContactSerializer(serializers.Serializer):
     URL = OrangeButtonSerializer()
     PreferredContactMethod = EnumModelSerializer()
     Address = AddressSerializer(source='AddressID')
+    RepresentativeID = OrangeButtonSerializer(source='get_rep_id')
 
     def to_representation(self, contact):
         if self.context.get('is_public_view', False):
