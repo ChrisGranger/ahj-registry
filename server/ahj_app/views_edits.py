@@ -629,3 +629,16 @@ def user_edits(request):
     UserID = request.query_params.get('UserID', None)
     edits = Edit.objects.filter(ChangedBy=UserID)
     return Response(EditSerializer(edits, many=True).data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@authentication_classes([WebpageTokenAuth])
+@permission_classes([IsAuthenticated])
+def latest_submitted(request):
+    source_row = request.query_params.get('AHJPK', None)
+    if source_row is None:
+        return Response('An AHJPK must be provided', status=status.HTTP_400_BAD_REQUEST)
+    accepted = request.query_params.get('accepted', False)
+    query = Edit.objects.filter(AHJPK=source_row).order_by("-DateRequested")
+    if accepted:
+        query = query.filter(ReviewStatus='A')
+    return Response(EditSerializer(query[0]).data, status=status.HTTP_200_OK)
