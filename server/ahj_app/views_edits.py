@@ -1,5 +1,5 @@
 import datetime
-
+from datetime import timedelta
 from django.apps import apps
 from django.db import transaction
 from django.utils import timezone
@@ -631,14 +631,27 @@ def user_edits(request):
     return Response(EditSerializer(edits, many=True).data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-@authentication_classes([WebpageTokenAuth])
-@permission_classes([IsAuthenticated])
+# @authentication_classes([WebpageTokenAuth])
+# @permission_classes([IsAuthenticated])
 def latest_submitted(request):
     source_row = request.query_params.get('AHJPK', None)
     if source_row is None:
         return Response('An AHJPK must be provided', status=status.HTTP_400_BAD_REQUEST)
     accepted = request.query_params.get('accepted', False)
-    query = Edit.objects.filter(AHJPK=source_row).order_by("-DateRequested")
+    date_string = request.query_params.get('date-after',None)
+    query = None
+    if not date_string is None:
+        date = datetime.datetime.strptime(date_string,"%Y-%m-%d")
+        query = Edit.objects.filter(AHJPK=source_row,DateRequested__date__gte=date).order_by('-DateRequested')
+    else:
+        query = Edit.objects.filter(AHJPK=source_row,DateRequested__gte=timezone.now() - timedelta(days=7)).order_by("-DateRequested")
     if accepted:
         query = query.filter(ReviewStatus='A')
-    return Response(EditSerializer(query[0]).data, status=status.HTTP_200_OK)
+    edits = EditSerializer(query,many=True).data
+    for e in edits:
+        if 'ChangedBy' in e.keys() and not e['ChangedBy'] is None:
+            e['ChangedBy'] = e['ChangedBy']['Username']
+        if 'ApprovedBy' in e.keys() and not e['ApprovedBy'] is None:
+            e['ApprovedBy'] = e['ApprovedBy']['Username']
+        
+    return Response(edits, status=status.HTTP_200_OK)
