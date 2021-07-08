@@ -2395,7 +2395,7 @@ export default {
                 this.isManaged = true;
                 return;
             }
-            let MA =  this.$store.state.loginStatus.MaintainedAHJs;
+            let MA =  this.$store.state.currentUserInfo.MaintainedAHJs;
             for(let i = 0; i < MA.length;i++){
                 if(MA[i]==this.AHJInfo.AHJPK.Value){
                     this.isManaged = true;
