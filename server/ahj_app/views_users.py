@@ -89,7 +89,7 @@ def user_update(request):
 
 @api_view(['GET'])
 @authentication_classes([WebpageTokenAuth])
-@permission_classes([IsAuthenticated, IsSuperuser])
+@permission_classes([IsAuthenticated])
 def create_api_token(request):
     try:
         user = request.user

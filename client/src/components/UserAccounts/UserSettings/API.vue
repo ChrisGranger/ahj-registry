@@ -8,6 +8,8 @@
                 Go to Documentation
             </b-button>
         </div>
+        <b-button id="get-token-button" class="button" @click="displayAPIToken" block pill variant="primary">Get Current API Token</b-button>
+        <h4 class="api-status-text" v-if="this.showAPIToken">Your current API token: <span>{{this.getCurrentToken()}}</span></h4>
     </div>
 </template>
 
@@ -52,6 +54,26 @@ export default {
             }
             else{
                 this.showAPIToken = true;
+            }
+        },
+        getCurrentToken(){
+            if(!this.$store.state.currentUserInfo.APIToken){
+                axios.get(constants.API_ENDPOINT + "auth/api-token/create/", 
+                        {
+                            headers: {
+                                Authorization: this.$store.getters.authToken
+                            }
+                        }
+                    )
+                    .then((response) => {
+                        this.APIToken = response.data['auth_token'];
+                        this.generatedAPIToken = true;
+                        this.$store.state.currentUserInfo.APIToken = response.data['auth_token'];
+                        return this.$store.state.currentUserInfo.APIToken;
+                    })
+            }
+            else{
+                return this.$store.state.currentUserInfo.APIToken;
             }
         }
     }
