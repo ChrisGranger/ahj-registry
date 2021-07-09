@@ -19,7 +19,7 @@ import constants from "../../../constants.js";
 export default {
     data() {
         return {
-            APIToken: "",
+            APIToken: "", 
             generatedAPIToken: false,
             SubmitStatus: "",
             showAPIToken: false
