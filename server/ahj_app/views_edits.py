@@ -294,6 +294,9 @@ def edit_review(request):
     try:
         eid = request.data['EditID']  # required
         stat = request.data['Status']  # required
+        date = None
+        if 'Date' in request.data:
+            date = datetime.datetime.strptime(request.data['Date'],'%Y-%m-%d').replace(tzinfo=datetime.timezone.utc)
         if stat != 'A' and stat != 'R':
             raise ValueError('Invalid edit status ' + str(status))
         user = request.user
@@ -304,9 +307,17 @@ def edit_review(request):
             return Response('You do not have permission to perform this action', status=status.HTTP_403_FORBIDDEN)
         edit.ReviewStatus = stat
         edit.ApprovedBy = request.user
+        if date == "now":
+            edit.DateEffective = timezone.now()
+            if stat == 'A':
+                apply_edits(ready_edits=[edit])
+            return Response('Success!', status=status.HTTP_200_OK)
+        if date and date != "now":
+            edit.DateEffective = date
         tomorrow = timezone.now() + datetime.timedelta(days=1)
         if not edit.DateEffective or edit.DateEffective < tomorrow:
             edit.DateEffective = tomorrow
+        print(date)
         edit.save()  # commit changes
         return Response('Success!', status=status.HTTP_200_OK)
     except Exception as e:

@@ -21,6 +21,11 @@ export default {
             type: Object
         }
     },
+    data(){
+        return {
+            EditDate: ""
+        }
+    },
     mounted: function(){
         this.changeStatus();
         this.data.DateRequested = moment(this.data.DateRequested).format('MMMM Do YYYY, h:mm:ss a');

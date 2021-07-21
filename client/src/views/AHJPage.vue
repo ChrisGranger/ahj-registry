@@ -559,6 +559,11 @@
         <div id="edits" class='edits hide'>
             <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('edits')" class="fas fa-times"></div>
             <div id="mid-edits" class='big-div'>
+                            <b-modal id="date-modal" title="Set a date" style="z-index:10000" @ok="inputDate">
+                <label v-if="DateNow!=='true'" for="edit-date">When should this edit be applied?</label>
+                <b-form-datepicker v-if="DateNow!=='true'" id="edit-date" v-model="EditDate" class="mb-2"></b-form-datepicker>
+                <b-form-checkbox id="edit-now" v-model="DateNow" name="cb-1" value="true" unchecked-value="false">Apply this edit now</b-form-checkbox>
+            </b-modal>
                 <div class="edit-title">AHJ</div>
                 <div id="Address-edits" class="edit-body">
                     <div v-for="(e,index) in editList" v-bind:key="`ahjedit${index}`">
@@ -1479,7 +1484,11 @@ export default {
             contactAdditionBackup: null,
             showMore: false,
             baseFields: new Set(["URL","Description","DocumentSubmissionMethodNotes","PermitIssueMethodNotes", "EstimatedTurnaroundDays","FileFolderURL"]),
-            DataType: "Default"
+            DataType: "Default",
+            EditDate: new Date().toISOString(),
+            DateNow: false,
+            EditAccepted: -1,
+            EventType: null
         }
     },
     computed: {
@@ -2379,16 +2388,36 @@ export default {
         },
         //if an AHJ official accepts or rejects an edit
         handleOfficial(event){
+            this.EditAccepted = event.eID;
+            this.EventType = event.Type
+            this.$bvModal.show("date-modal");
+            //send to backend
+            // let url = constants.API_ENDPOINT + 'edit/review/';
+            // axios
+            //     .post(url,o, {
+            //         headers: {
+            //             Authorization: this.$store.getters.authToken
+            //         }
+            //     })
+        },
+        inputDate(){
             let o = {};
             //set status of edit (accepted or rejected)
-            o['EditID'] = event.eID;
-            if(event.Type === 'Accept'){
+            o['EditID'] = this.EditAccepted;
+            if(this.EventType === 'Accept'){
                 o['Status'] = 'A';
             }
             else{
                 o['Status'] = 'R';
             }
+            this.$bvModal.show("date-modal");
             //send to backend
+            if(this.DateNow==='true'){
+                o['Date'] = 'now';
+            }
+            else{
+                o['Date'] = this.EditDate;
+            }
             let url = constants.API_ENDPOINT + 'edit/review/';
             axios
                 .post(url,o, {
@@ -2706,7 +2735,7 @@ tr{
 }
 .big-div{
     position: absolute;
-    z-index: 2000;
+    z-index: 1001;
     width: 70%;
     left: 15%;
     top: 100px;
@@ -2716,7 +2745,7 @@ tr{
 }
 .edits{
     position: absolute;
-    z-index: 2000;
+    z-index: 1001;
     width: 100%;
     height: 100%;
     background-color: rgb(0,0,0,0.25);
