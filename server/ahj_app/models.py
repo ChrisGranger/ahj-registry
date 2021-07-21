@@ -253,6 +253,7 @@ class Edit(models.Model):
     #Edit type: A = addition, D = deletion, U = update
     EditType = models.CharField(db_column='EditType', max_length=1, default='U')
     DataSourceComment = models.CharField(db_column='DataSourceComment', max_length=255, blank=True)
+    IsApplied = models.BooleanField(db_column='IsApplied', default=False)
     history = HistoricalRecords()
 
     class Meta:

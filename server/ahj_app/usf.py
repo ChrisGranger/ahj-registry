@@ -8,6 +8,7 @@ from django.contrib.gis.utils import LayerMapping
 from .models import *
 from .models_field_enums import *
 from .utils import ENUM_FIELDS, get_enum_value_row
+from django.utils import timezone
 
 BASE_DIR = os.path.expanduser('~/AHJRegistryData/')
 BASE_DIR_SHP = BASE_DIR + '2020CensusPolygons/'
@@ -414,6 +415,11 @@ def load_ahj_data_csv():
             print('AHJ {0}: {1}'.format(ahj.AHJID, i))
             i += 1
 
+def set_edits_as_applied():
+    query = Edit.objects.filter(DateEffective__lte=timezone.now(), ReviewStatus='A')
+    for x in query:
+        x.IsApplied = True
+        x.save()
 
 def get_empty_loc():
     loc = {}

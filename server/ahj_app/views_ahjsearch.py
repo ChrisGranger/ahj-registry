@@ -5,8 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .authentication import WebpageTokenAuth
-from .models import AHJ
-from .serializers import AHJSerializer
+from .models import AHJ,Edit
+from .serializers import AHJSerializer, EditSerializer
 from .utils import get_multipolygon, get_multipolygon_wkt, get_str_location, \
     filter_ahjs, order_ahj_list_AHJLevelCode_PolygonLandArea, get_location_gecode_address_str
 
@@ -69,9 +69,23 @@ def webpage_ahj_list(request):
     })
 
 
+def translate(s):
+    if s == "AHJDocumentSubmissionMethodUse":
+        return "DocumentSubmissionMethod"
+    if s == "AHJPermitIssueMethodUse":
+        return "PermitIssueMethod"
+    return s
+
+def translate_id(s):
+    if s == "AHJDocumentSubmissionMethodUse":
+        return "Use"
+    if s == "AHJPermitIssueMethodUse":
+        return "Use"
+    return s
+
 @api_view(['GET'])
-@authentication_classes([WebpageTokenAuth])
-@permission_classes([IsAuthenticated])
+# @authentication_classes([WebpageTokenAuth])
+# @permission_classes([IsAuthenticated])
 def get_single_ahj(request):
     """
     Endpoint to get a single ahj given an AHJPK
@@ -79,4 +93,79 @@ def get_single_ahj(request):
     AHJPK = request.GET.get('AHJPK')
     ahj = AHJ.objects.filter(AHJPK=AHJPK)
     context = {'fields_to_drop': []}
-    return Response(AHJSerializer(ahj, context=context, many=True).data, status=status.HTTP_200_OK)
+    serialized_ahj = AHJSerializer(ahj, context=context,many=True).data[0]
+    r_type = request.query_params.get('view')
+    Fields = {"AHJInspection","Contact","FeeStructure","EngineeringReviewRequirement"}
+    SearchFields = {"Address", "Location"}
+    changed = set()
+    if r_type == "latest" or r_type == "latest-accepted":
+        query = None
+        if r_type == "latest":
+            query = EditSerializer(Edit.objects.filter(AHJPK=AHJPK, ReviewStatus="P").order_by('-DateRequested')[:10],many=True).data
+        if r_type == "latest-accepted":
+            query = EditSerializer(Edit.objects.filter(AHJPK=AHJPK, ReviewStatus="P", EditStatus="A").order_by('-DateRequested')[:10],many=True).data
+        for x in query:
+            if not (x['SourceColumn'],x['SourceRow']) in changed:
+                if x['EditType'] == "U":
+                    if x['SourceTable'] in Fields:
+                        for y in serialized_ahj[x['SourceTable'] + "s"]:
+                            if x['SourceTable'] == "AHJInspection":
+                                if y['InspectionID'] == x['SourceRow']:
+                                    y[x['SourceColumn']] = x['NewValue']
+                                    changed.add((x['SourceColumn'],x['SourceRow']))
+                                    break
+                            else:
+                                if y[x['SourceTable'] + "ID"] == x['SourceRow']:
+                                    y[x['SourceColumn']] = x['NewValue']
+                                    changed.add((x['SourceColumn'],x['SourceRow']))
+                                    break
+                        continue
+                    elif x['SourceTable'] in SearchFields:
+                        if x['SourceTable'] == "Address" and serialized_ahj['Address']['AddressID'] == x['SourceRow']:
+                            serialized_ahj["Address"][x['SourceColumn']] = x['NewValue']
+                            changed.add((x['SourceColumn'],x['SourceRow'])) 
+                            continue
+                        if x['SourceTable'] == "Location" and serialized_ahj['Address']['Location']['LocationID'] == x['SourceRow']:
+                            serialized_ahj["Address"]['Location'][x['SourceColumn']] = x['NewValue']
+                            changed.add((x['SourceColumn'],x['SourceRow'])) 
+                            continue
+                        for y in contact:
+                            if x['SourceTable'] == "Address" and y['Address']['AddressID'] == x['SourceRow']:
+                                y["Address"][x['SourceColumn']] = x['NewValue']
+                                changed.add((x['SourceColumn'],x['SourceRow'])) 
+                                continue
+                            if x['SourceTable'] == "Location" and y['Address']['Location']['LocationID'] == x['SourceRow']:
+                                y["Address"]['Location'][x['SourceColumn']] = x['NewValue']
+                                changed.add((x['SourceColumn'],x['SourceRow'])) 
+                                continue
+                    elif x['SourceTable'] != 'AHJ':
+                        serialized_ahj[x['SourceTable']][x['SourceColumn']] = x['NewValue']
+                        changed.add((x['SourceColumn'],x['SourceRow'])) 
+                elif x['EditType'] == "A":
+                    if x['SourceTable'] == "AHJInspection":
+                        for y in range(len(serialized_ahj['UnconfirmedInspections'])):
+                            if serialized_ahj['UnconfirmedInspections'][y]['InspectionID'] == x['SourceRow']:
+                                insp = serialized_ahj['UnconfirmedInspections'].pop(y)
+                                serialized_ahj['AHJInspections'].append(insp)
+                                break
+                    else:
+                        for y in range(len(serialized_ahj['Unconfirmed' + translate(x['SourceTable']) + 's'])):
+                            if serialized_ahj['Unconfirmed' + translate(x['SourceTable']) + 's'][y][translate_id(x['SourceTable']) + 'ID'] == x['SourceRow']:
+                                insp = serialized_ahj['Unconfirmed' + translate(x['SourceTable']) + 's'].pop(y)
+                                serialized_ahj[translate(x['SourceTable']) + 's'].append(insp)
+                                break
+                else:
+                    if x['SourceTable'] == "AHJInspection":
+                        for y in range(len(serialized_ahj['AHJInspections'])):
+                            if serialized_ahj['AHJInspections'][y]['InspectionID'] == x['SourceRow']:
+                                insp = serialized_ahj['AHJInspections'].pop(y)
+                                break
+                    else:
+                        for y in range(len(serialized_ahj[translate(x['SourceTable'])+'s'])):
+                            if serialized_ahj[translate(x['SourceTable'])+'s'][y][translate_id(x['SourceTable']) + 'ID'] == x['SourceRow']:
+                                insp = serialized_ahj[translate(x['SourceTable'])+'s'].pop(y)
+                                break
+
+
+                
+    return Response(serialized_ahj, status=status.HTTP_200_OK)
