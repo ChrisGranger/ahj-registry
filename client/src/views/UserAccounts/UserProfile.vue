@@ -165,9 +165,6 @@ export default {
         title(){
             return this.ProfileData['ContactID']['Title'].Value;
         },
-        isPeerReviewer(){
-            return this.ProfileData['IsPeerReviewer'];
-        },
         location(){
             return this.ProfileData['IsPeerReviewer'];
         },
@@ -206,20 +203,18 @@ export default {
     methods: {
         // Gets a single users info. This method is only called when a user is not viewing their own profile.
         async GetUserInfo(){
-            let query = constants.API_ENDPOINT + "user-one/" + this.$route.params.username;
-            await axios.get(query, {
-                    headers: {
-                        Authorization: `${this.$store.getters.authToken}`
-                    }
-                })
+            let headers = {};
+            if (this.$store.getters.loggedIn) {
+              headers.Authorization = this.$store.getters.authToken;
+            }
+            await axios.get(`${constants.API_ENDPOINT}user-one/${this.$route.params.username}`,
+                { headers: headers })
                 .then(response => {
                     this.ProfileData = response.data;
-                    if (this.$store.getters.LoggedIn && this.$route.params.username === this.ProfileData.Username){
+                    if (this.$store.getters.loggedIn && this.$route.params.username === this.ProfileData.Username){
                         this.$store.commit("changeCurrentUserInfo", response.data);
                     }
-                    this.ProfileData.Photo = this.convertBinaryToPhoto(this.ProfileData.Photo);
                     this.UserInfoLoaded();
-
                 }).catch(() => {
                     let unknownType = 'User';
                     this.$router.push({ name: 'not-found', params: { unknownType }});
@@ -230,15 +225,14 @@ export default {
             this.gettingUserActivity = true;
             this.activities = [];
             this.FeedActivity = activityType;
-            let query = activityType === 'Edit' ? constants.API_ENDPOINT + "user/edits/" : constants.API_ENDPOINT + "user/comments/"
-            axios.get(query, {
-                  params: {
-                    'UserID': this.ProfileData.UserID
-                  },
-                  headers: {
-                        Authorization: `${this.$store.getters.authToken}`
-                    }
-                })
+            let endpoint = `${constants.API_ENDPOINT}${activityType === 'Edit' ? 'user/edits/' : 'user/comments/'}`;
+            let headers = {};
+            if (this.$store.getters.loggedIn) {
+              headers.Authorization = this.$store.getters.authToken;
+            }
+            axios.get(endpoint,
+                { params: { UserID: this.ProfileData.UserID },
+                  headers: headers })
                 .then(response => {
                     this.gettingUserActivity = false;
                     this.activities = response.data;

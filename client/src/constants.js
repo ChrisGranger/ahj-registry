@@ -1,7 +1,11 @@
 const API_ENDPOINT = "http://localhost:8000/api/v1/";
+const SUPPORT_EMAIL = "support@sunspec.org";
+const MEMBERSHIP_EMAIL = "membership@sunspec.org";
 
 export default {
   API_ENDPOINT: API_ENDPOINT,
+  SUPPORT_EMAIL: SUPPORT_EMAIL,
+  MEMBERSHIP_EMAIL: MEMBERSHIP_EMAIL,
   AHJ_FIELDS: {
     AHJCode: "",
     AHJName: "",
@@ -311,4 +315,6 @@ export default {
   API_USAGE_BADGE_BOUNDARIES: [50, 200, 500],
   COMMUNITY_SCORE_BADGE_BOUNDARIES: [30, 150, 400],
   ACCEPTED_EDITS_BADGE_BOUNDARIES: [3, 8, 15],
+  // Message and notification text
+  API_THROTTLE_MSG: `Thank you for using this service. Please consider becoming a member by contacting <a href="mailto:${MEMBERSHIP_EMAIL}">${MEMBERSHIP_EMAIL}</a> to continue searching.`
 };

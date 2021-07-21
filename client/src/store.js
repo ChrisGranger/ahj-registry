@@ -34,7 +34,7 @@ state: {
     currentAHJ: null, // Current AHJ in focus on map and AHJ table
     cancelAPICallToken: null, // Field to call .cancel() on to cancel an axios api request
     apiLoading: true,
-    apiError: false,
+    apiErrorInfo: { status: null, msg: ''},
     showTable: false, // shows the search results table
     selectedAHJ: null, // Current AHJ in focus on map and AHJ table
     editList: null,
@@ -56,6 +56,8 @@ state: {
     mutations: {
         callAPI(state, queryPayload) {
             state.apiLoading = true;
+            state.apiData = [];
+            state.apiErrorInfo = { status: null, msg: '' }
             if (!state.showTable) {
                 state.showTable = true;
             }
@@ -63,7 +65,7 @@ state: {
             if (state.cancelAPICallToken !== null) {
                 state.cancelAPICallToken("previous request cancelled");
             }
-            let url = constants.API_ENDPOINT + "ahj-private/?";
+            let url = `${constants.API_ENDPOINT}ahj-private/?`;
 
             // save query for other components to modify and perform current search later
             if (queryPayload) {
@@ -79,11 +81,13 @@ state: {
             if (queryPayload['callerID'] === 'searchpagefilter' && state.searchedGeoJSON) {
                 queryPayload['FeatureCollection'] = state.searchedGeoJSON;
             }
+            let headers = {};
+            if (this.getters.loggedIn) {
+                headers.Authorization = this.getters.authToken;
+            }
             axios
                 .post(url, queryPayload, {
-                    headers: {
-                        Authorization: `${this.getters.authToken}`,
-                    },
+                    headers: headers,
                     cancelToken: new axios.CancelToken(function executor(c) {
                         state.cancelAPICallToken = c;
                     })
@@ -101,10 +105,23 @@ state: {
                 .catch((err) => {
                     // request was cancelled or some other error
                     if(err.message !== 'previous request cancelled'){
-                        this.state.apiError = true;
-                        this.state.apiLoading = false;
+                        state.apiErrorInfo = { status: err.response.status,
+                                               msg: err.response.statusText }
+                        state.apiLoading = false;
                     }
                 });
+        },
+        callAPISingleAHJ(state, ahjpk) {
+            let headers = {};
+            if (this.getters.loggedIn) {
+                headers.Authorization = this.getters.authToken;
+            }
+            axios.get(`${constants.API_ENDPOINT}ahj-one/`,
+                { params: { AHJPK: ahjpk },
+                  headers: headers})
+                .then(response => { state.apiData = { results: { ahjlist: [response.data]} } })
+                .catch(err => state.apiErrorInfo = { status: err.response.status,
+                                                     msg: err.response.statusText });
         },
         setSelectedAHJ(state, ahj) {
             state.selectedAHJ = ahj;
@@ -121,8 +138,7 @@ state: {
             return;
           }
           state.resultsDownloading = true;
-          let that = this;
-          let gatherAllObjects = function(url, searchPayload, ahjJSONObjs, offset) {
+          let gatherAllObjects = function(url, headers, searchPayload, ahjJSONObjs, offset) {
             if (url === null) {
               let filename = "results";
               let fileToExport = null;
@@ -133,41 +149,40 @@ state: {
                 fileToExport = utils.jsonToCSV(ahjJSONObjs);
                 filename += ".csv";
               }
-              FileSaver.saveAs(new Blob([fileToExport], {
-                type: fileType
-              }), filename);
+              FileSaver.saveAs(new Blob([fileToExport], { type: fileType }), filename);
               state.resultsDownloading = false;
               state.downloadCompletionPercent = 0;
             } else {
               axios
-                .post(url, searchPayload,{
-                  headers: {
-                    Authorization: that.getters.authToken
-                  }
-                })
+                .post(url,
+                      searchPayload,
+                    { headers: headers })
                 .then(response => {
                   ahjJSONObjs = ahjJSONObjs.concat(response.data.results.ahjlist);
                   offset += 20; // the django rest framework pagination configuration
                   state.downloadCompletionPercent = (offset / response.data.count * 100).toFixed();
-                  gatherAllObjects(response.data.next, searchPayload, ahjJSONObjs, offset);
+                  gatherAllObjects(response.data.next, headers, searchPayload, ahjJSONObjs, offset);
+                })
+                .catch(err => {
+                    state.apiErrorInfo = { status: err.response.status,
+                                           msg: err.response.statusText };
+                    state.resultsDownloading = false;
+                    state.downloadCompletionPercent = 0;
                 });
             }
           };
-          let url = constants.API_ENDPOINT + "ahj-private/";
-          let searchPayload = utils.value_to_ob_value_primitive(state.searchedQuery);
-          if (state.searchedQuery.Address) {
-              /* If an address was searched, the lat,lon coordinates are returned from callAPI.
-               * Replace the address searched with a Location of the lat,lon.
-               */
-              delete searchPayload.Address;
-              searchPayload['Location'] = state.apiData.results.Location;
+          let url = `${constants.API_ENDPOINT}ahj-private/`;
+          let headers = {};
+          if (this.getters.loggedIn) {
+            headers.Authorization = this.getters.authToken;
           }
+          let searchPayload = state.searchedQuery;
           if (state.searchedGeoJSON) {
             searchPayload['FeatureCollection'] = state.searchedGeoJSON;
           }
           // Tell endpoint to send JSON for user consumption.
           searchPayload['use_public_view'] = true;
-          gatherAllObjects(url, searchPayload, [], 0);
+          gatherAllObjects(url, headers, searchPayload, [], 0);
         },
         changeAuthToken(state, authToken) {
             state.authToken = authToken;
@@ -175,22 +190,25 @@ state: {
         changeCurrentUserInfo(state, payload) {
             state.currentUserInfo = payload;
         },
-        getEdits(state,query){
-            let url = constants.API_ENDPOINT + "edit/?" + query;
-            axios
-                .get(url, {
-                    headers: {
-                        Authorization: `${this.getters.authToken}`
-                    },
-                    cancelToken: new axios.CancelToken(function executor(c) {
-                        state.cancelAPICallToken = c;
-                    })
+        getEdits(state, query){
+            let headers = {};
+            if (this.getters.loggedIn) {
+                headers.Authorization = this.getters.authToken;
+            }
+            axios.get(`${constants.API_ENDPOINT}edit/?${query}`,
+                { headers: headers,
+                  cancelToken: new axios.CancelToken(function executor(c) {
+                      state.cancelAPICallToken = c;
+                  })
                 })
                 .then(response => {
                     state.editList = response.data;
                     state.cancelAPICallToken = null;
                     state.apiLoading = false;
                 })
+        },
+        resetAPIErrorInfo(state) {
+            state.apiErrorInfo = { status: null, msg: '' }
         },
         clearState(state){ // reset fields in the store
             state.callData = [];
@@ -200,7 +218,7 @@ state: {
             state.currPolyInd = null;
             state.apiLoading = true;
             state.mapViewCenter = [34.05, -118.24];
-        },
+        }
     },
     actions: {
         async getUserInfo({getters, commit}){ // get currently logged in user's info by their webpage auth token

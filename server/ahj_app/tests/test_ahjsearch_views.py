@@ -300,8 +300,7 @@ def test_ahj_list__multiple_search_params_one_ahj(url_name, list_of_ahjs, client
 def test_get_single_ahj__valid_ahj(ahj_obj, client_with_credentials):
     url = reverse('single_ahj')
     response = client_with_credentials.get(url, {'AHJPK': ahj_obj.AHJPK})
-    assert len(response.data) == 1
-    assert response.data[0]['AHJPK']['Value'] == ahj_obj.AHJPK
+    assert response.data['AHJPK']['Value'] == ahj_obj.AHJPK
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
@@ -313,8 +312,7 @@ def test_get_single_ahj__valid_ahj(ahj_obj, client_with_credentials):
 def test_get_single_ahj__incorrect_param(param, ahj_obj, client_with_credentials):
     url_name = reverse('single_ahj')
     response = client_with_credentials.get(url_name, param)
-    assert len(response.data) == 0
-    assert response.status_code == 200
+    assert response.status_code == 400
 
 """
     Only Public AHJ Search Tests
@@ -468,4 +466,4 @@ def test_deactivate_expired_api_tokens(create_user):
                                     expires=timezone.now() - datetime.timedelta(days=1),
                                     is_active=True)
     views_ahjsearch_api.deactivate_expired_api_tokens()
-    assert token.is_active is False
+    assert APIToken.objects.get(user=token.user).is_active is False

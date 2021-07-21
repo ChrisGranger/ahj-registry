@@ -84,8 +84,7 @@ export default {
             position: 'right',
             intro: '<p>The search bar allows you to type any valid address or pair of' +
                 ' latitude longitude coordinates to find AHJs who have jurisdiction' +
-                ' over this area.</p> <p>You can even search by common landmarks such as the ' +
-                '<i>University of Utah</i>.</p>'
+                ' over this area.</p> <p>For example, let\'s search with SunSpec\'s address.</p>'
           },{
             element: document.querySelector('.search-filter-form'),
             title: 'Try It Yourself!',

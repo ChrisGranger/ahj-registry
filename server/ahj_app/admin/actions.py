@@ -7,7 +7,7 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 
-from .form import UserResetPasswordForm, UserDeleteToggleAPITokenForm, EditApproveForm
+from .form import UserResetPasswordForm, UserDeleteToggleAPITokenForm, EditApproveForm, UserGenerateAPITokenForm
 from ..models import User, APIToken, Edit, AHJUserMaintains, Comment
 from ..usf import dict_filter_keys_start_with, ENUM_FIELDS
 from ..views_edits import apply_edits, reset_edit, edit_is_resettable
@@ -103,6 +103,38 @@ def partition_by_field(queryset, field, value):
     return with_field_value, without_field_value
 
 
+def set_date_from_str(date_str):
+    """
+    Returns a date object from a string formatted in '%Y-%m-%d'.
+    """
+    try:
+        return timezone.make_aware(datetime.datetime.strptime(date_str, '%Y-%m-%d'))
+    except ValueError:
+        return None
+
+
+def process_generate_api_token_data(post_data):
+    """
+    This expects the post_data to contain an array called 'user_to_form'.
+    Each item in this array is of the form:
+     - '<UserID>.<form_prefix>' (i.e. '1.form-0')
+    Each form then may add two form data key-value pairs:
+     - '<form_prefix>-expiration_date': '<date>' (i.e. 'form-0-expiration_date': '2021-06-04')
+    """
+    user_to_form_pairs = [pair.split('.') for pair in post_data.getlist('user_to_form')]
+    user_form_data = []
+    for user_id, form_prefix in user_to_form_pairs:
+        user = User.objects.get(UserID=user_id)
+        form_data = dict_filter_keys_start_with(form_prefix, post_data)
+        date_str = '-'.join([form_data.get('ExpirationDate_year', ''),
+                             form_data.get('ExpirationDate_month', ''),
+                             form_data.get('ExpirationDate_day', '')])
+        expiration_date = set_date_from_str(date_str=date_str)
+        user_form_data.append({'user': user,
+                               'expires': expiration_date})
+    return user_form_data
+
+
 def user_generate_api_token(self, request, queryset):
     """
     Admin action for the User model. The admin can select one or
@@ -113,20 +145,19 @@ def user_generate_api_token(self, request, queryset):
         """
         The form has been filled out and submitted.
         """
-        for user_id in request.POST.getlist('_selected_action'):
-            """
-            Create an API token for each user without one.
-            """
-            user = User.objects.get(UserID=user_id)
-            APIToken.objects.create(user=user)
+        action_data = process_generate_api_token_data(request.POST)
+        for item in action_data:
+            APIToken.objects.create(user=item['user'], expires=item['expires'])
         self.message_user(request, 'Success', level=messages.INFO)
         return HttpResponseRedirect(request.get_full_path())
     users_without_tokens, users_with_tokens = partition_by_field(queryset, 'api_token', None)
     users_with_tokens = users_with_tokens.order_by('Email')
     users_without_tokens = users_without_tokens.order_by('Email')
+    formset = formset_factory(UserGenerateAPITokenForm, extra=queryset.count())()
     return render(request, 'admin/user_generate_api_token.html', context={
         'request': request,
         'users_without_tokens': users_without_tokens,
+        'users_without_tokens_and_forms': zip(users_without_tokens, formset),
         'user_token_tuples': zip(users_with_tokens, users_with_tokens.values_list('api_token', flat=True))
     })
 
@@ -271,7 +302,7 @@ def user_query_ahjs_is_ahj_official_of(self, request, queryset):
     """
     model_name = 'ahj'
     field_key_pairs = [field_key_pair('AHJPK', 'AHJPK')]
-    queryset = AHJUserMaintains.objects.filter(UserID__in=queryset)
+    queryset = AHJUserMaintains.objects.filter(UserID__in=queryset, MaintainerStatus=True)
     return load_change_list_with_queryset(request, queryset, model_name, field_key_pairs)
 
 
@@ -318,16 +349,6 @@ def user_query_submitted_comments(self, request, queryset):
 
 
 user_query_submitted_comments.short_description = 'Query Submitted Comments'
-
-
-def set_date_from_str(date_str):
-    """
-    Returns a date object from a string formatted in '%Y-%m-%d'.
-    """
-    try:
-        return timezone.make_aware(datetime.datetime.strptime(date_str, '%Y-%m-%d'))
-    except ValueError:
-        return None
 
 
 def process_approve_edits_data(post_data, requesting_user):
@@ -470,7 +491,7 @@ def ahj_query_ahj_official_users(self, request, queryset):
     """
     model_name = 'user'
     field_key_pairs = [field_key_pair('UserID', 'UserID')]
-    queryset = AHJUserMaintains.objects.filter(AHJPK__in=queryset)
+    queryset = AHJUserMaintains.objects.filter(AHJPK__in=queryset, MaintainerStatus=True)
     return load_change_list_with_queryset(request, queryset, model_name, field_key_pairs)
 
 

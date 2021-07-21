@@ -192,14 +192,9 @@ export default {
                     if (this.userInfo[userAttr])
                         fd.append(`${userAttr}`, this.userInfo[userAttr]);
                 }
-                axios.post(constants.API_ENDPOINT + "user/update/" + this.OriginalUsername + "/", fd,
-                    {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            Authorization: `${this.$store.getters.authToken}`
-                        }
-                    }
-                )
+                axios.post(`${constants.API_ENDPOINT}user/update/`, fd,
+                    { headers: { 'Content-Type': 'multipart/form-data',
+                                 Authorization:  this.$store.getters.authToken }})
                 .then(() => { 
                     this.SubmitStatus = "OK"; 
                     this.UpdateStore(fd);
@@ -233,14 +228,9 @@ export default {
             this.Photo = url;
         },
         async CheckUsernameAvailable(){
-            let params = { 'Username' : this.userInfo.Username };
-            axios.get(constants.API_ENDPOINT + "auth/form-validator/",{
-                    params,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `${this.$store.getters.authToken}`
-                    }
-                })
+            axios.get(constants.API_ENDPOINT + "auth/form-validator/",
+                { params: { Username: this.userInfo.Username },
+                  headers: { Authorization: this.$store.getters.authToken }})
                 .then(response => {
                     if (this.usernameCheckPending){
                         this.usernameCheckPending = false;

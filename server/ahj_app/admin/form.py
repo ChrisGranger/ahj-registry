@@ -42,6 +42,13 @@ class UserResetPasswordForm(forms.Form):
     password = forms.CharField(max_length=100)
 
 
+class UserGenerateAPITokenForm(forms.Form):
+    ExpirationDate = forms.DateField(input_formats=['%Y-%m-%d'],
+                                     widget=SelectDateWidget,
+                                     required=False,
+                                     label='Expiration Date')
+
+
 class UserDeleteToggleAPITokenForm(forms.Form):
     toggle = forms.ChoiceField(choices=[('DoNothing', 'Do Nothing'),
                                         ('On', 'On'),

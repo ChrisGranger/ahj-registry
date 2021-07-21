@@ -1,5 +1,5 @@
 from django.urls import reverse
-from ahj_app.models import User, Contact, AHJUserMaintains, PreferredContactMethod
+from ahj_app.models import User, Contact, AHJUserMaintains, PreferredContactMethod, WebpageToken
 from fixtures import *
 import pytest
 from django.conf import settings
@@ -14,12 +14,30 @@ def test_get_active_user(client_with_webpage_credentials):
     response = client_with_webpage_credentials.get(url)
     assert response.status_code == 200
 
+
+@pytest.mark.parametrize(
+    'is_viewing_self', [
+        True,
+        False
+    ]
+)
 @pytest.mark.django_db
-def test_get_single_user__user_exists(generate_client_with_webpage_credentials):
+def test_get_single_user__user_exists(is_viewing_self, create_user, generate_client_with_webpage_credentials):
     client = generate_client_with_webpage_credentials(Username='someone')
-    url = reverse('single-user-info', kwargs={'username': 'someone'})
+    if is_viewing_self:
+        user_to_view = User.objects.get(Username='someone')
+    else:
+        user_to_view = create_user()
+    url = reverse('single-user-info', kwargs={'username': user_to_view.Username})
     response = client.get(url)
     assert response.status_code == 200
+    if is_viewing_self:
+        for field in User.SERIALIZER_EXCLUDED_FIELDS:
+            assert field in response.data
+    else:
+        for field in User.SERIALIZER_EXCLUDED_FIELDS:
+            assert field not in response.data
+
 
 @pytest.mark.django_db
 def test_get_single_user__user_does_not_exist(generate_client_with_webpage_credentials):

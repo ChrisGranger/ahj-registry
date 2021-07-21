@@ -104,7 +104,6 @@
 </template>
 
 <script>
-//import axios from 'axios';
 import constants from "../../constants";
 
 export default {
@@ -163,14 +162,6 @@ export default {
         this.parameters['Address'] = this.$route.query['Location']; // send location queries through address field
       }
       this.updateQuery();
-    } else {
-      /*
-      axios.get(constants.IP_GEOLOCATION_ENDPOINT)
-      .then(response => {
-        this.parameters['Address'] = `${response.data['latitude']} ${response.data['longitude']}`;
-        this.updateQuery();
-      });
-      */
     }
   },
   beforeDestroy() { 
@@ -181,10 +172,11 @@ export default {
       this.windowWidth = window.innerWidth;
     },
     /**
-     * Helper for search page tutorial to fill in search query
+     * Helper for search page tutorial to fill in search query.
+     * It is not used in this Vue component, but by its parent component.
      */
     setDemoAddress() {
-      this.parameters.Address = 'University of Utah';
+      this.parameters.Address = '4040 Moorpark Ave. Suite 110, San Jose, CA, 95117';
     },
     /**
      * Composes a new search query with parameters the user has inputted into the form.

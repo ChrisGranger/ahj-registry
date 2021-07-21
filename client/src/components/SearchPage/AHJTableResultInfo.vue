@@ -1,6 +1,6 @@
 <template>
   <div class="table-info">
-    <b-dropdown text="Download Results" class="m-md-2" :disabled="ahjCount === 0">
+    <b-dropdown text="Download Results" class="m-md-2" :disabled="Boolean($store.state.apiErrorInfo.status) || ahjCount === 0">
       <template #button-content>
         <span v-if="resultsDownloading">
           Downloading... (<b-spinner small class="text-center" />
@@ -14,7 +14,7 @@
         </span>
       </template>
       <b-dropdown-item :disabled="resultsDownloading" @click="exportSearchResultsJSONCSV('application/json')">JSON (.json)</b-dropdown-item>
-      <b-dropdown-item :disabled="resultsDownloading" @click="exportSearchResultsJSONCSV('text/csv')">CSV (.csv)</b-dropdown-item>
+<!--      <b-dropdown-item :disabled="resultsDownloading" @click="exportSearchResultsJSONCSV('text/csv')">CSV (.csv)</b-dropdown-item>-->
     </b-dropdown>
   </div>
 </template>

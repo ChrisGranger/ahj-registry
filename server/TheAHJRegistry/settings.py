@@ -91,7 +91,15 @@ REST_FRAMEWORK = {
     ],
     'COERCE_DECIMAL_TO_STRING': False,
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 20
+    'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': [
+        # 'rest_framework.throttling.UserRateThrottle',
+        # 'rest_framework.throttling.AnonRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        # 'user': '10/day',
+        'anon': '10/day'
+    }
 }
 
 TEMPLATES = [
@@ -135,7 +143,7 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
             'verbose': {
-                'format': '{levelname} {request.user} {request.auth} {asctime} {message}',
+                'format': '{levelname} {request.user} {request.auth} {request.META[REMOTE_ADDR]} {asctime} {message}',
                 'style': '{',
             },
             'simple': {
@@ -234,5 +242,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+STATIC_ROOT = 'static'
 
 GOOGLE_MAPS_KEY = ''

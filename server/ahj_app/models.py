@@ -518,6 +518,7 @@ class User(AbstractBaseUser):
     history = HistoricalRecords()
 
     USERNAME_FIELD = 'Email'
+    SERIALIZER_EXCLUDED_FIELDS = ['APIToken', 'is_superuser', 'MaintainedAHJs']
     objects = UserManager()
 
     def has_perm(self, perm, obj=None):

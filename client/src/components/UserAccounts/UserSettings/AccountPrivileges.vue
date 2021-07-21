@@ -1,7 +1,7 @@
 <template>
     <div>
         <h1>Account Privileges</h1>
-        <h4 id="ahj-jurisdiction-text">AHJs where your account can accept/reject edit requests:</h4>
+        <h4 id="ahj-jurisdiction-text">AHJs where your account can approve/reject edit requests:</h4>
         <template v-if="numAHJNames < MaintainedAHJsCount">
             <p>Loading AHJs...</p>
         </template>
@@ -42,20 +42,13 @@ export default {
     methods: {
         // For each AHJPK in the user's maintainedAHJs list, find it's name then display it in the list.
         GetAHJNames(MaintainedAHJs){
-            for (let PKIndex in MaintainedAHJs){
-                let query = constants.API_ENDPOINT + "ahj-one/";
-                axios.get(query,
-                    {
-                    params: {
-                        'AHJPK': MaintainedAHJs[PKIndex]
-                    },
-                    headers: {
-                        Authorization: `${this.$store.getters.authToken}`
-                    }
-                    })
-                    .then( (response) => {
-                        this.numAHJNames++;
-                        this.ahjNames.push(response.data[0].AHJName.Value);
+            for (let ahjpk of MaintainedAHJs){
+                axios.get(`${constants.API_ENDPOINT}ahj-one/`,
+                    { params: { AHJPK: ahjpk },
+                      headers: { Authorization: this.$store.getters.authToken }})
+                    .then(response => {
+                      this.numAHJNames++;
+                      this.ahjNames.push(response.data.AHJName.Value);
                     });
             }
         }

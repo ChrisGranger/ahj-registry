@@ -4,6 +4,40 @@ import * as settings from './test_settings.js';
 
 jest.setTimeout(600000);
 
+// These tests pass on their own, but seem to interfere with all the other tests.
+// const ANON_THROTTLE_QUOTA = 10;
+//
+// describe('Anonymous users are throttled', () => {
+//     beforeAll(async () => {
+//         await page.goto(settings.host + 'ahj-search/');
+//     });
+//     it('Search is throttled after quota expires', async () => {
+//         let el = await page.$('#search-bar-input');
+//         await el.type("353 S 1100 E", { delay: 100 });
+//         for(let i = 0; i < ANON_THROTTLE_QUOTA - 1; i++) {
+//             await el.press('Enter');
+//         }
+//         await el.press('Enter');
+//         while (await page.$('.b-table-busy-slot')) {
+//         }
+//         let list = await page.$('.ahj-public-list');
+//         let tr = await list.$$('tr[tabindex="0"]');
+//         expect(tr.length).toBeGreaterThan(0);
+//         await el.press('Enter');
+//         while (await page.$('.b-table-busy-slot')) {
+//         }
+//         list = await page.$('.ahj-public-list');
+//         tr = await list.$$('tr[tabindex="0"]');
+//         expect(tr.length).toBe(0);
+//     });
+//     // unless the django server restarted, all anon searching from here on will be throttled
+//     it('AHJ Page still loads', async () => {
+//         await page.goto(settings.host + 'view-ahj/2118/');
+//         await new Promise(r => setTimeout(r, 5000));
+//         await expect(page).toMatch('AHJID: f97ea81a-f9c4-4195-889e-ad414b736ce5');
+//     });
+// });
+
 describe('Select Page Tests', () => {
     beforeAll(async () => {
         await page.goto(settings.host + 'ahj-search/');

@@ -220,9 +220,12 @@ Added to list_display:
 """
 api_token_admin_model = model_admin_dict['APIToken']['admin_model']
 admin_attrs_to_add = []
-admin_attrs_to_add.append(get_attr_info_dict('get_user_email', 'user.Email', 'email', 'Email'))
-admin_attrs_to_add.append(get_attr_info_dict('get_user_company_affiliation', 'user.CompanyAffiliation', 'company_affiliation', 'Company Affiliation'))
-admin_attrs_to_add.append(get_attr_info_dict('get_user_is_ahj_official', 'user.is_ahj_official', 'ahj_official', 'Is AHJ Official'))
+admin_attrs_to_add.append(get_attr_info_dict(name='user__Email', dotted_path='user.Email',
+                                             admin_order_field='user__Email', short_description='Email'))
+admin_attrs_to_add.append(get_attr_info_dict(name='user__CompanyAffiliation', dotted_path='user.CompanyAffiliation',
+                                             admin_order_field='user__CompanyAffiliation', short_description='Company Affiliation'))
+admin_attrs_to_add.append(get_attr_info_dict(name='user__ahjusermaintains__MaintainerStatus', dotted_path='user.is_ahj_official',
+                                             admin_order_field='user__ahjusermaintains__MaintainerStatus', short_description='Is AHJ Official'))
 for attr in admin_attrs_to_add:
     setattr(api_token_admin_model, attr['name'],
             create_admin_get_attr_function(attr['name'], attr['dotted_path'], attr['admin_order_field'], attr['short_description']))

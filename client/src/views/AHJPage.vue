@@ -141,7 +141,7 @@
                         <input type="text" v-model="AddCont.Description" class="form-control" id="Description" placeholder="Description">
                         </div>
                         <div class="add-breakup">
-                        <label for="Title">Time Zone</label>
+                        <label for="Title">Title</label>
                         <input type="text" id="Title" v-model="AddCont.Title" class="form-control" placeholder="Title"/>
                         <label for="TimeZone">Time Zone</label>
                         <input type="text" v-model="AddCont.ContactTimezone" class="form-control" id="TimeZone" placeholder="Time Zone">
@@ -1469,22 +1469,15 @@ export default {
             allPIM: [],
             //if current user is an AHJOfficial
             isManaged: false,
-            //Application upload file and status
-            uploadedApplication: null,
-            applicationStatus: null,
             contactAdditionBackup: null,
             showMore: false,
             baseFields: new Set(["URL","Description","DocumentSubmissionMethodNotes","PermitIssueMethodNotes", "EstimatedTurnaroundDays","FileFolderURL"])
         }
     },
     computed: {
-        canSubmitApplication(){
-            //Check if user is logged in and not an official of this AHJ
-            return this.$store.state.currentUserInfo && !this.$store.state.currentUserInfo.MaintainedAHJs.includes(parseInt(this.$route.params.AHJID));
-        },
         isAHJOfficial(){
             //check if user is logged in and an official of this AHJ
-            return this.$store.state.currentUserInfo && this.$store.state.currentUserInfo.MaintainedAHJs.includes(parseInt(this.$route.params.AHJID));
+            return this.$store.getters.loggedIn && this.$store.state.currentUserInfo.MaintainedAHJs.includes(parseInt(this.$route.params.AHJID));
         },
         AHJID(){
             //get AHJID from URL
@@ -1507,47 +1500,14 @@ export default {
         }
         //fires after mount
         this.$nextTick(() => {
-            //latest API view (no unconfirmed edits)
-            var queryPayload = {
-              view: 'latest',
-              AHJPK: `${this.$route.params.AHJID}`
-            }
             //Get info for this AHJ
-            this.$store.commit("callAPI", queryPayload);
+            this.$store.commit("callAPISingleAHJ", this.$route.params.AHJID);
             let queryString = 'AHJPK=' + this.$route.params.AHJID;
             //Get edits on this AHJ (this may be slow so we do it asynchronously)
             this.$store.commit("getEdits",queryString);
-            //this.$store.commit('changeUserLoginStatus', {...JSON.parse(window.localStorage.vuex).loginStatus});
         })
     },
     methods: {
-        //for submiting applications
-        async SubmitApplication(){
-            this.applicationStatus = "PENDING";
-            let that = this;
-            let fd = new FormData();
-            //find file, username and AHJ
-            fd.append('File', that.uploadedApplication);
-            fd.append('Username', that.$store.state.currentUserInfo.Username);
-            fd.append('AHJPK', that.$route.params.AHJID);
-            //send above info to backend to be stored
-            axios.post(constants.API_ENDPOINT + "app/upload/", fd, {
-                    headers: {
-                      'Content-Type': 'multipart/form-data',
-                    }
-                }).then(() => {that.applicationStatus = "SUBMITTED";})
-                .catch(() => {that.applicationStatus = "ERROR";})
-        },
-        //Hides modal after submitting or cancelling an application
-        HideApplicationModal(){
-            this.$bvModal.hide('submit-application-modal');
-            this.ResetApplicationModal();
-        },
-        //reset all fields on modal
-        ResetApplicationModal(){
-            this.uploadedApplication = null;
-            this.applicationStatus = null;
-        },
         //set up map view for page header
         setupLeaflet() {
             //info leaflet needs about map (we want it not to move)
@@ -1595,7 +1555,9 @@ export default {
         ahjCodeFormatter(value) {
             if(value) {
                 if (value === "NoSolarRegulations") {
-                return "No Solar Regulations";
+                  return "No Solar Regulations";
+                } else if (value === "SpecialWindZone") {
+                  return "Special Wind Zone";
                 }
                 //Add spaces between identifier and code data i.e. 2020IBC -> 2020 IBC
                 return value.substring(0, 4) + " " + value.substring(4);
@@ -1724,7 +1686,7 @@ export default {
         //if user wants to edit
         editing(){
             //if user isn't logged in, alert and return
-            if(this.$store.getters.authToken === ""){
+            if (!this.$store.getters.loggedIn) {
                 alert("You must be logged in to Edit!");
                 return;
             }
@@ -2391,6 +2353,10 @@ export default {
         },
         //see if this AHJ is managed by the current user
         assertIsManaged(){
+            if (!this.$store.getters.loggedIn) {
+              this.isManaged = false;
+              return;
+            }
             if(this.$store.state.currentUserInfo.is_superuser){
                 this.isManaged = true;
                 return;

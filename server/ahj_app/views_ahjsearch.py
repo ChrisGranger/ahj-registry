@@ -1,8 +1,8 @@
 from rest_framework import status
-from rest_framework.decorators import permission_classes, authentication_classes, api_view
+from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 
 from .authentication import WebpageTokenAuth
 from .models import AHJ,Edit
@@ -12,8 +12,7 @@ from .utils import get_multipolygon, get_multipolygon_wkt, get_str_location, \
 
 
 @api_view(['POST'])
-@authentication_classes([WebpageTokenAuth])
-@permission_classes([IsAuthenticated])
+@throttle_classes([AnonRateThrottle])
 def webpage_ahj_list(request):
     """
     Functional view for the WebPageAHJList
@@ -84,8 +83,6 @@ def translate_id(s):
     return s
 
 @api_view(['GET'])
-# @authentication_classes([WebpageTokenAuth])
-# @permission_classes([IsAuthenticated])
 def get_single_ahj(request):
     """
     Endpoint to get a single ahj given an AHJPK

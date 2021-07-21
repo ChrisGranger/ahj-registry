@@ -135,7 +135,7 @@ export default {
       return this.$store.state.apiLoading;
     },
     apiError() {
-      return this.$store.state.apiError;
+      return this.$store.state.apiErrorInfo.status;
     }
   },
   methods: {
@@ -144,7 +144,7 @@ export default {
       this.$store.state.currentAHJ = ahj;
       this.$router.push('view-ahj');
     },
-    // When a table row is clicked, we change the map's currently selected AHJ and its associate dpolygon.
+    // When a table row is clicked, we change the map's currently selected AHJ and its associated polygon.
     onRowClicked(rowItem) {
       this.$store.commit("setSelectedAHJ", rowItem);
     },
@@ -152,6 +152,8 @@ export default {
       if(value) {
         if (value === "NoSolarRegulations") {
           return "No Solar Regulations";
+        } else if (value === "SpecialWindZone") {
+          return "Special Wind Zone";
         }
         return value.substring(0, 4) + " " + value.substring(4);
       }

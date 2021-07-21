@@ -127,7 +127,33 @@ export let AHJ = {
     ConfirmedPermitIssueMethods: [],
     UnconfirmedPermitIssueMethods: [],
     Comments: [],
-    Polygon: null
+    Polygon: {
+        type: "Feature",
+        geometry: {
+            type: "MultiPolygon",
+            coordinates: [
+                [
+                    [
+                        [
+                            -150.426471,
+                            61.167514
+                        ],
+                        [
+                            -150.426471,
+                            61.167514
+                        ]
+                    ]
+                ]
+            ]
+        },
+        properties: {
+            AHJID: "ahjid",
+            LandArea: 4420591349,
+            GEOID: "02020",
+            InternalPLatitude: 61.1742503,
+            InternalPLongitude: -149.2843294
+        }
+    }
 }
 
 export let Edit = {

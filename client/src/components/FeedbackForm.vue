@@ -82,10 +82,10 @@ export default {
       if (!this.$v.$invalid) {
         let that = this;
         this.SubmitStatus = 'PENDING';
-        axios.post(constants.API_ENDPOINT + "contact/", {
-            "Email": this.Email,
-            "Subject": this.Subject,
-            "Message": this.Message
+        axios.post(`${constants.API_ENDPOINT}contact/`, {
+            Email: this.Email,
+            Subject: this.Subject,
+            Message: this.Message
         }).then(() => {
             that.SubmitStatus = 'SUCCESS';
         })

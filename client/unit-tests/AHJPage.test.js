@@ -74,8 +74,14 @@ describe('Methods Tests',() => {
     expect(p.vm.AddressString).toBe("309 Field Crest PKWY, Third Thing, LA, 84102");
   });
   it('Is editing when button clicked',() => {
+    // save the current value of authToken so it doesn't affect other tests.
+    let tempAuthToken = store.state.authToken;
+    // fake a logged in user.
+    store.state.authToken = '(auth token)';
     let e = p.find("#editButton");
     e.trigger("click");
+    // restore the previous authToken value so to not affect other tests.
+    store.state.authToken = tempAuthToken;
     expect(p.vm.isEditing).toBe(true);
   });
   it('Clear Edits works', () => {

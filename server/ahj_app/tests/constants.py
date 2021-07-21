@@ -1,24 +1,14 @@
 webpageTokenUrls = [
-    ('ahj-private', {}),
-    ('single_ahj', {}),
     ('ahj-set-maintainer', {}), 
     ('ahj-remove-maintainer', {}), 
-    ('edit-list', {}),
-    ('create-api-token', {}), 
+    ('create-api-token', {}),
     ('edit-review', {}), 
     ('edit-update', {}), 
     ('edit-deletion', {}), 
     ('edit-addition', {}),
     ('user-update', {}),
-    ('user-edits', {}), 
-    ('user-comments', {}),
-    ('active-user-info', {}), 
-    ('single-user-info', {'username': 'test'}), 
-    ('comment-submit', {}), 
-    ('data-map', {}), 
-    ('data-map-polygon', {}), 
-    ('send-support-email', {}),
-    ('form-validator', {}),
+    ('active-user-info', {}),
+    ('comment-submit', {}),
     ('djoser:user-list', {}),
     ('djoser-authtoken:login', {}),
     ('djoser-authtoken:logout', {}),
@@ -32,5 +22,15 @@ apiTokenUrls = [
 ]
 
 noAuthTokenUrls = [
+    ('ahj-private', {}),
+    ('single_ahj', {}),
+    ('edit-list', {}),
+    ('user-edits', {}),
+    ('user-comments', {}),
+    ('single-user-info', {'username': 'test'}),
+    ('form-validator', {}),
+    ('data-map', {}),
+    ('data-map-polygon', {}),
+    ('send-support-email', {}),
     ('form-validator', {})
 ]

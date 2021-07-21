@@ -50,44 +50,37 @@ export default {
      * Get and set the state markers with their overall ahj stats
      */
     getStatePoints() {
-      axios.get(constants.API_ENDPOINT + 'data-vis/data-map/', {
-          headers: {
-              Authorization: `${this.$store.getters.authToken}`,
-          }
-        },).then(response => {
-        this.statePoints = response.data;
-        this.setStateMarkers();
-      });
+      axios.get(`${constants.API_ENDPOINT}data-vis/data-map/`)
+          .then(response => {
+            this.statePoints = response.data;
+            this.setStateMarkers();
+          });
     },
     /**
      * Get and set the specific ahj markers with their individual stats
      */
     getOtherPoints(state_pk) {
-      axios.get(constants.API_ENDPOINT + 'data-vis/data-map/?StatePK=' + state_pk, {
-          headers: {
-              Authorization: `${this.$store.getters.authToken}`,
-          }
-        }).then(response => {
-        this.otherPoints = response.data;
-        this.setOtherPoints();
-     });
+      axios.get(`${constants.API_ENDPOINT}data-vis/data-map/`,
+          { params: { StatePK: state_pk } })
+          .then(response => {
+            this.otherPoints = response.data;
+            this.setOtherPoints();
+          });
     },
     /**
      * Get and display the polygon of a given 'other marker', not state marker
      */
     getPolygon(point) {
       this.clearSelectedPolygon();
-      axios.get(constants.API_ENDPOINT + 'data-vis/data-map/polygon/?PolygonID=' + point['PolygonID'], {
-          headers: {
-              Authorization: `${this.$store.getters.authToken}`,
-          }
-        }).then(response => {
+      axios.get(`${constants.API_ENDPOINT}data-vis/data-map/polygon/`,
+          { params: { PolygonID: point.PolygonID } })
+          .then(response => {
             this.selectedPolygon = L.geoJSON(response.data, {
               polygonData: point
             });
             this.setPolygon();
             this.selectedPolygon.addTo(this.leafletMap);
-          })
+          });
     },
     /**
      * Place the state markers on the map

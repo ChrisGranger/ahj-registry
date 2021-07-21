@@ -50,20 +50,20 @@ def get_active_user(request):
     Endpoint for getting the active user
     through the authtoken
     """
-    return Response(UserSerializer(request.user).data, status=status.HTTP_200_OK)
+    return Response(UserSerializer(request.user, context={'is_public_view': False}).data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
-@authentication_classes([WebpageTokenAuth])
-@permission_classes([IsAuthenticated])
 def get_single_user(request, username):
     """
     Function view for getting a single user with the specified Username = username
     """
+    context = {'is_public_view': True}
+    if request.auth is not None and request.user.Username == username:
+        context['is_public_view'] = False
     try:
-        queryset = User.objects.get(Username=username)
-        payload = UserSerializer(queryset, context={'fields_to_drop': []})
-        return Response(payload.data, status=status.HTTP_200_OK)
+        user = User.objects.get(Username=username)
+        return Response(UserSerializer(user, context=context).data, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 

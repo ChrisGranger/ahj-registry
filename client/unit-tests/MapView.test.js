@@ -28,7 +28,7 @@ describe('Method tests', () => {
     it('Get AHJ Official Address', () => {
         expect(m.vm.getAHJOfficeAddress(objects.AHJ)).toEqual("353 S 1100 E<br>Unit 12<br>Salt Lake City, Salt Lake County, UT 84102");
     });
-    it('Update map markers with null polygons', () => {
+    it('Update map markers', () => {
         store.state.apiData.results = { Location: { Latitude: { Value: null}, Longitude: {Value: null } } };
         m.vm.updateMapMarkers([{...objects.AHJ}]);
     });

@@ -222,6 +222,22 @@ class UserSerializer(serializers.Serializer):
     APIToken = serializers.CharField(source='get_API_token')
     is_superuser = serializers.BooleanField()
 
+    def to_representation(self, user):
+        """
+        Returns an OrderedDict representing an User object
+        Note not every AHJ has every child object.
+        If 'is_public_view' is True, will not serialize fields
+        that are not meant for public api users. Unlike other
+        serializers, the default is True to passively prevent
+        sensitive data being serialized when it's not needed.
+        """
+        if self.context.get('is_public_view', True):
+            for field in User.SERIALIZER_EXCLUDED_FIELDS:
+                if field in self.fields:
+                    self.fields.pop(field)
+        return super().to_representation(user)
+
+
 class UserCreateSerializer(UserCreateSerializer):
     """
     Serializes User to Ordered Dict.

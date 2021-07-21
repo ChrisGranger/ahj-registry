@@ -97,7 +97,8 @@ export default {
       this.updateMapMarkers(ahjlist);
     },
     /**
-     * Add polygons of the given ahjs to the map
+     * Add polygons of the given ahjs to the map.
+     * Expects all AHJs in the passed-in list have GeoJSON polygons.
      */
     addPolygonLayer(ahjlist) {
       let polygons = ahjlist.map(ahj => ahj.Polygon);
@@ -128,7 +129,8 @@ export default {
       });
     },
     /**
-     * Set the map markers for the ahj offices and the searched address, if any
+     * Set the map markers for the ahj offices and the searched address, if any.
+     * Expects all AHJs in the passed-in list have GeoJSON polygons.
      */
     updateMapMarkers(ahjlist) {
       let location = this.$store.state.apiData.results.Location;

@@ -51,6 +51,29 @@ def test_partition_by_field_users_by_api_token(create_user, create_user_with_api
     assert None not in those_without_field_value.values_list('api_token', flat=True)
 
 
+@pytest.mark.django_db
+def test_process_generate_api_token_data(create_user):
+    form_prefix = 'form-{0}'
+    post_data_dict = {}
+    post_query_dict = dict_make_query_dict(post_data_dict)
+    users = []
+    dates = []
+    for x in range(5):
+        user = create_user()
+        date = timezone.now() + datetime.timedelta(days=x)
+        date_strs = str(date.date()).split('-')
+        post_query_dict.update({'user_to_form': f'{user.UserID}.{form_prefix.format(x)}',
+                                f'{form_prefix.format(x)}-ExpirationDate_year': date_strs[0],
+                                f'{form_prefix.format(x)}-ExpirationDate_month': date_strs[1],
+                                f'{form_prefix.format(x)}-ExpirationDate_day': date_strs[2]})
+        users.append(user)
+        dates.append(date)
+    results = admin_actions.process_generate_api_token_data(post_query_dict)
+    for x in range(len(users)):
+        assert results[x]['user'].UserID == users[x].UserID
+        assert results[x]['expires'].date() == dates[x].date()
+
+
 @pytest.mark.parametrize(
     'form_value, expected_output', [
         ('On', True),

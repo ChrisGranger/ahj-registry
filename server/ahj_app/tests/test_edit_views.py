@@ -277,10 +277,10 @@ def test_edit_list__normal_use(ahj_obj, generate_client_with_webpage_credentials
 @pytest.mark.django_db
 def test_edit_list__missing_param(generate_client_with_webpage_credentials):
     client = generate_client_with_webpage_credentials(Username='someone')
-    
     url = reverse('edit-list')
     response = client.get(url)
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert len(response.data) == 0
 
 
 @pytest.mark.parametrize(
@@ -596,7 +596,7 @@ def test_edit_undo_apply(model_name, field_name, old_value, new_value, create_us
     ]
 )
 @pytest.mark.django_db
-def test_edit_reset(model_name, field_name, old_value, new_value, create_user, ahj_obj, make_later_edit, later_new_value, create_minimal_obj, expected_value, add_enums):
+def test_edit_reset__edit_update(model_name, field_name, old_value, new_value, create_user, ahj_obj, make_later_edit, later_new_value, create_minimal_obj, expected_value, add_enums):
     user = create_user()
     obj = create_minimal_obj(model_name)
     edit_dict = {'ChangedBy': user, 'ApprovedBy': user,
@@ -608,23 +608,94 @@ def test_edit_reset(model_name, field_name, old_value, new_value, create_user, a
     edits_to_apply = [edit]
     if make_later_edit:
         edit_dict['OldValue'], edit_dict['NewValue'] = new_value, later_new_value
-        edit_dict['DateRequested'] = edit_dict['DateRequested'] + datetime.timedelta(days=1)
-        edit_dict['DateEffective'] = edit_dict['DateEffective'] + datetime.timedelta(days=1)
+        edit_dict['DateRequested'], edit_dict['DateEffective'] = timezone.now(), timezone.now()
         later_edit = Edit.objects.create(**edit_dict)
         edits_to_apply.append(later_edit)
     # NOTE: apply_edits is tested separately above
     views_edits.apply_edits(ready_edits=edits_to_apply)
     views_edits.reset_edit(user, edit)
     if make_later_edit:
-        assert check_edit_exists(edit_dict) is True
+        edit_dict['OldValue'], edit_dict['NewValue'] = later_new_value, old_value
     else:
-        edit = Edit.objects.get(EditID=edit.EditID)
-        assert edit.ReviewStatus == 'P'
-        assert edit.ApprovedBy is None
-        assert edit.DateEffective is None
+        edit_dict['ApprovedBy'], edit_dict['ReviewStatus'], edit_dict['DateEffective'] = None, 'P', None
+    assert check_edit_exists(edit_dict) is True
     if expected_value == 'old_value':
         expected_value = get_value_or_enum_row(field_name, old_value)
     assert get_obj_field(obj, field_name) == expected_value
+
+
+@pytest.mark.parametrize(
+    'parent_model_name, model_name, review_status', [
+        ('AHJ', 'Contact', 'A'),
+        ('AHJInspection', 'Contact', 'A'),
+        ('AHJ', 'EngineeringReviewRequirement', 'A'),
+        ('AHJ', 'AHJInspection', 'A'),
+        ('AHJ', 'DocumentSubmissionMethod', 'A'),
+        ('AHJ', 'PermitIssueMethod', 'A'),
+        ('AHJ', 'FeeStructure', 'A'),
+        ('AHJ', 'Contact', 'R'),
+        ('AHJInspection', 'Contact', 'R'),
+        ('AHJ', 'EngineeringReviewRequirement', 'R'),
+        ('AHJ', 'AHJInspection', 'R'),
+        ('AHJ', 'DocumentSubmissionMethod', 'R'),
+        ('AHJ', 'PermitIssueMethod', 'R'),
+        ('AHJ', 'FeeStructure', 'R')
+    ]
+)
+@pytest.mark.django_db
+def test_edit_reset__edit_addition(parent_model_name, model_name, review_status, create_user, create_minimal_obj, ahj_obj):
+    user = create_user()
+    parent_obj = create_minimal_obj(parent_model_name)
+    obj = create_minimal_obj(model_name)
+    relation = obj.create_relation_to(parent_obj)
+    set_obj_field(relation, relation.get_relation_status_field(), True if review_status == 'A' else None)
+    edit_dict = {'ChangedBy': user, 'ApprovedBy': user,
+                 'SourceTable': relation.__class__.__name__, 'SourceRow': relation.pk, 'SourceColumn': relation.get_relation_status_field(),
+                 'OldValue': None, 'NewValue': True,
+                 'DateRequested': timezone.now(), 'DateEffective': timezone.now(),
+                 'ReviewStatus': review_status, 'EditType': 'A', 'AHJPK': ahj_obj}
+    edit = Edit.objects.create(**edit_dict)
+    views_edits.reset_edit(user, edit)
+    edit_dict['ApprovedBy'], edit_dict['ReviewStatus'], edit_dict['DateEffective'] = None, 'P', None
+    assert check_edit_exists(edit_dict) is True
+    assert get_obj_field(relation, relation.get_relation_status_field()) is edit_dict['OldValue']
+
+
+@pytest.mark.parametrize(
+    'parent_model_name, model_name, review_status', [
+        ('AHJ', 'Contact', 'A'),
+        ('AHJInspection', 'Contact', 'A'),
+        ('AHJ', 'EngineeringReviewRequirement', 'A'),
+        ('AHJ', 'AHJInspection', 'A'),
+        ('AHJ', 'DocumentSubmissionMethod', 'A'),
+        ('AHJ', 'PermitIssueMethod', 'A'),
+        ('AHJ', 'FeeStructure', 'A'),
+        ('AHJ', 'Contact', 'R'),
+        ('AHJInspection', 'Contact', 'R'),
+        ('AHJ', 'EngineeringReviewRequirement', 'R'),
+        ('AHJ', 'AHJInspection', 'R'),
+        ('AHJ', 'DocumentSubmissionMethod', 'R'),
+        ('AHJ', 'PermitIssueMethod', 'R'),
+        ('AHJ', 'FeeStructure', 'R')
+    ]
+)
+@pytest.mark.django_db
+def test_edit_reset__edit_deletion(parent_model_name, model_name, review_status, create_user, create_minimal_obj, ahj_obj):
+    user = create_user()
+    parent_obj = create_minimal_obj(parent_model_name)
+    obj = create_minimal_obj(model_name)
+    relation = obj.create_relation_to(parent_obj)
+    set_obj_field(relation, relation.get_relation_status_field(), False if review_status == 'A' else True)
+    edit_dict = {'ChangedBy': user, 'ApprovedBy': user,
+                 'SourceTable': relation.__class__.__name__, 'SourceRow': relation.pk, 'SourceColumn': relation.get_relation_status_field(),
+                 'OldValue': True, 'NewValue': False,
+                 'DateRequested': timezone.now(), 'DateEffective': timezone.now(),
+                 'ReviewStatus': review_status, 'EditType': 'A', 'AHJPK': ahj_obj}
+    edit = Edit.objects.create(**edit_dict)
+    views_edits.reset_edit(user, edit)
+    edit_dict['ApprovedBy'], edit_dict['ReviewStatus'], edit_dict['DateEffective'] = None, 'P', None
+    assert check_edit_exists(edit_dict) is True
+    assert get_obj_field(relation, relation.get_relation_status_field()) is edit_dict['OldValue']
 
 
 @pytest.mark.django_db

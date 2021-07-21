@@ -186,38 +186,26 @@ export default {
             }
         },
         async CheckUsernameAvailable(){
-            let params = { 'Username' : this.Username };
-            axios.get(constants.API_ENDPOINT + "auth/form-validator/",
-                {
-                    params,
-                    headers: {
-                        Authorization: `${this.$store.getters.authToken}`
-                    }
-                })
+            axios.get(`${constants.API_ENDPOINT}auth/form-validator/`,
+                { params: { Username: this.Username }})
                 .then(response => {
                     if (this.usernameCheckPending){
                         this.usernameCheckPending = false;
                         this.usernameIsUnique = !response.data.UsernameExists;
                         this.$v.Username.$touch();
-                    }
-                }).catch(() => {return 'BACKEND ERROR'});
+                    }})
+                .catch(() => {return 'BACKEND ERROR'});
         },
         async CheckEmailAvailable(){
-            let params = { 'Email' : this.Email };
             axios.get(constants.API_ENDPOINT + "auth/form-validator/",
-                {
-                    params,
-                    headers: {
-                        Authorization: `${this.$store.getters.authToken}`
-                    }
-                })
-                        .then(response => {
-                            if (this.emailCheckPending){
-                                this.emailCheckPending = false;
-                                this.emailIsUnique = !response.data.EmailExists;
-                                this.$v.Email.$touch();
-                            }
-                        }).catch(() => {return 'BACKEND ERROR'});
+                { params: { Email: this.Email }})
+                .then(response => {
+                    if (this.emailCheckPending){
+                      this.emailCheckPending = false;
+                      this.emailIsUnique = !response.data.EmailExists;
+                      this.$v.Email.$touch();
+                    }})
+                .catch(() => {return 'BACKEND ERROR'});
         },
         CheckUsernameUnique(){
             this.usernameCheckPending = true;

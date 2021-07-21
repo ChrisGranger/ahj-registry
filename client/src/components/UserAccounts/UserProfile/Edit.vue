@@ -11,7 +11,7 @@
                 <span :class="StatusColor">{{Status}}</span>
             </p>
             <p>
-                <span v-if="Status === 'Accepted'">Accepted by:</span> <span v-if="Status === 'Rejected'">Rejected by: </span> 
+                <span v-if="Status === 'Approved'">Approved by:</span> <span v-if="Status === 'Rejected'">Rejected by: </span>
                 <span v-if="this.ActivityData.ApprovedBy">{{ReviewedByFullName}}</span>
             </p>
         </div>
@@ -36,7 +36,7 @@ export default {
             return this.SplitByCapital(this.ActivityData.SourceTable);
         },
         Status(){
-            if (this.ActivityData.ReviewStatus === 'A') return "Accepted";
+            if (this.ActivityData.ReviewStatus === 'A') return "Approved";
             else if (this.ActivityData.ReviewStatus === 'R') return "Rejected";
             return "Pending";
         },
@@ -59,22 +59,15 @@ export default {
         },
         // Finds the name of an AHJ given the AHJPK for that AHJ.
         FindAHJName(AHJPK){
-            let query = constants.API_ENDPOINT + "ahj-one/";
-            axios.get(query,
-                {
-                  params: {
-                    'AHJPK': AHJPK
-                  },
-                  headers: {
-                    Authorization: `${this.$store.getters.authToken}`
-                  }
-                })
-                .then( (response) => {
-                    this.ahjName = response.data[0].AHJName.Value;
-                })
-                .catch((error) => {
-                    console.log(error);
-                });
+            let headers = {};
+            if (this.$store.getters.loggedIn) {
+              headers.Authorization = this.$store.getters.authToken;
+            }
+            axios.get(`${constants.API_ENDPOINT}ahj-one/`,
+                { params: { AHJPK: AHJPK },
+                  headers: headers})
+                .then(response => { this.ahjName = response.data.AHJName.Value })
+                .catch(err => { console.log(err) });
         }
     },
     mounted(){
