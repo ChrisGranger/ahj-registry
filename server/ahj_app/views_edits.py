@@ -138,8 +138,10 @@ def apply_edits(ready_edits=None):
     """
     if ready_edits is None:
         ready_edits = Edit.objects.filter(ReviewStatus='A',
-                                          DateEffective__date=datetime.date.today()).exclude(ApprovedBy=None)
+                                          DateEffective__date__lte=datetime.date.today(),IsApplied=False).exclude(ApprovedBy=None)
     for edit in ready_edits:
+        edit.IsApplied = True
+        edit.save()
         row = edit.get_edited_row()
         edit_value = edit_get_old_new_value(edit, 'NewValue')
         setattr(row, edit.SourceColumn, edit_value)
@@ -526,11 +528,11 @@ def latest_submitted(request):
     query = None
     if not date_string is None:
         date = datetime.datetime.strptime(date_string,"%Y-%m-%d")
-        query = Edit.objects.filter(AHJPK=source_row,DateRequested__date__gte=date).order_by('-DateRequested')
+        query = Edit.objects.filter(AHJPK=source_row,DateRequested__date__gte=date,IsApplied=False).order_by('-DateRequested').exclude(ReviewStatus="R")
     else:
-        query = Edit.objects.filter(AHJPK=source_row,DateRequested__gte=timezone.now() - timedelta(days=7)).order_by("-DateRequested")
-    if accepted:
-        query = query.filter(ReviewStatus='A')
+        query = Edit.objects.filter(AHJPK=source_row,DateRequested__gte=timezone.now() - timedelta(days=7),IsApplied=False).order_by("-DateRequested").exclude(ReviewStatus="R")
+    if not accepted:
+        query = query.filter(ReviewStatus='P')
     edits = EditSerializer(query,many=True).data
     for e in edits:
         if 'ChangedBy' in e.keys() and not e['ChangedBy'] is None:

@@ -123,6 +123,30 @@ state: {
                 .catch(err => state.apiErrorInfo = { status: err.response.status,
                                                      msg: err.response.statusText });
         },
+        callAPISingleAHJLatest(state, ahjpk){
+            let headers = {};
+            if (this.getters.loggedIn) {
+                headers.Authorization = this.getters.authToken;
+            }
+            axios.get(`${constants.API_ENDPOINT}ahj-one/`,
+                { params: { AHJPK: ahjpk, view: "latest" },
+                  headers: headers})
+                .then(response => { state.apiData = { results: { ahjlist: [response.data]} } })
+                .catch(err => state.apiErrorInfo = { status: err.response.status,
+                                                     msg: err.response.statusText });
+        },
+        callAPISingleAHJLatestAccepted(state, ahjpk){
+            let headers = {};
+            if (this.getters.loggedIn) {
+                headers.Authorization = this.getters.authToken;
+            }
+            axios.get(`${constants.API_ENDPOINT}ahj-one/`,
+                { params: { AHJPK: ahjpk, view: "latest-accepted" },
+                  headers: headers})
+                .then(response => { state.apiData = { results: { ahjlist: [response.data]} } })
+                .catch(err => state.apiErrorInfo = { status: err.response.status,
+                                                     msg: err.response.statusText });
+        },
         setSelectedAHJ(state, ahj) {
             state.selectedAHJ = ahj;
         },

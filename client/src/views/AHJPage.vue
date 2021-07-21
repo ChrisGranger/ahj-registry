@@ -958,7 +958,14 @@
             </div>
             <div id='text'>
                 <!-- Display name and Value or "Loading" -->
-                <h1 id='name'> {{ this.AHJInfo ? this.AHJInfo.AHJName["Value"] : 'Loading' }} </h1>
+                <div style="display:flex;">
+                    <h1 style="margin-right:10px;" id='name'> {{ this.AHJInfo ? this.AHJInfo.AHJName["Value"] : 'Loading' }} </h1>
+                    <b-form-select v-on:change="getData()" v-model="DataType" size="sm" selected="Default" style="width:80px;margin-left:10px;margin-top:10px;">
+                        <b-form-select-option value="Default">Default</b-form-select-option>
+                        <b-form-select-option value="Latest">Latest</b-form-select-option>
+                        <b-form-select-option value="Latest Accepted">Latest Accepted</b-form-select-option>
+                    </b-form-select>
+                </div>
                 <h1 id='code'> {{ this.AHJInfo ? this.AHJInfo.AHJCode.Value : 'Loading' }} </h1>
                 <div class="break">
                 </div>
@@ -1471,7 +1478,8 @@ export default {
             isManaged: false,
             contactAdditionBackup: null,
             showMore: false,
-            baseFields: new Set(["URL","Description","DocumentSubmissionMethodNotes","PermitIssueMethodNotes", "EstimatedTurnaroundDays","FileFolderURL"])
+            baseFields: new Set(["URL","Description","DocumentSubmissionMethodNotes","PermitIssueMethodNotes", "EstimatedTurnaroundDays","FileFolderURL"]),
+            DataType: "Default"
         }
     },
     computed: {
@@ -2489,6 +2497,23 @@ export default {
             }
             else{
                 this.$refs.titleInfo.style.height = "275px";
+            }
+        },
+        getData(){
+            if(this.DataType==="Latest"){
+                this.AHJInfo = null;
+                this.leafletMap.remove();
+                this.$store.commit("callAPISingleAHJLatest", this.$route.params.AHJID);
+            }
+            else if(this.DataType === "Latest Accepted"){
+                this.AHJInfo = null;
+                this.leafletMap.remove()
+                this.$store.commit("callAPISingleAHJLatestAccepted", this.$route.params.AHJID);
+            }
+            else{
+                this.AHJInfo = null;
+                this.leafletMap.remove()
+                this.$store.commit("callAPISingleAHJ", this.$route.params.AHJID);
             }
         }
     },
