@@ -2,59 +2,71 @@
     <div ref='page'>
         <!-- Window to confirm edits, this window is hidden until user clicks "Submit Edits" button -->
         <div id="confirm-edits" class='edits hide'>
+            <b-modal id="comment-modal" title="Add a comment" style="z-index:10000" @ok="inputComment">
+                <label style="display:block;" for="dsc-box">Enter a comment: </label>
+                <textarea style="display:block;" v-model="DataSourceComment" id="dsc-box"/>
+            </b-modal>
             <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('confirm-edits')" class="fas fa-times"></div>
             <div class="big-div">
                 <div class="edit-title">Edits</div>
                 <!-- Diplay all changes made on any field -->
                 <div style="display: flex; align-items:center; flex-direction:column;">
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(edit,index) in editObjects" v-bind:key="`EDIT${index}`">
-                        <h3>You have changed {{edit.OldValue}} to {{edit.NewValue}} for {{edit.SourceColumn}}</h3>
+                        <h3>You have changed {{edit.OldValue}} to {{edit.NewValue}} for {{edit.SourceColumn}} on {{ edit.SourceTable }}</h3>
                         <!-- Allow an edit to be deleted before submitting -->
                         <i v-on:click="deleteEdit(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'editObjects')" class="fas ">Add a comment</a>
                     </div>
                 </div>
                 <div class="edit-title">Additions</div>
                 <!-- Display all additions made -->
                 <div style="display: flex; align-items:center; flex-direction:column;">
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(add,index) in contactAddition.Value" v-bind:key="`CONTADD${index}`">
-                        <h3>You have added a Contact</h3>
+                        <h3>You have added a Contact: {{ add.FirstName + " " + add.LastName }}</h3>
                         <!-- Allow it to be deleted -->
                         <i v-on:click="deleteContactAddition(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'contactAddition')" class="fas ">Add a comment</a>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(add,index) in $children" v-bind:key="`INSPChil${index}`">
                         <div v-if="add.Type==='AHJInspection'">
                             <div v-for="(a,i) in add.AddCont.Value" v-bind:key="`INSPCONT${i}`">
                                 <!-- Contact added to an inspection -->
-                                <h3>You have added a Contact to an AHJInspection: {{ add.data.AHJInspectionName.Value }}</h3>
+                                <h3>You have added a Contact: {{ a.FirstName + " " + a.LastName }} to an AHJInspection: {{ add.data.AHJInspectionName.Value }}</h3>
                                 <!-- Delete the added contact -->
                                 <i v-on:click="deleteInspectionContactAddition(index,i)" class="fas fa-minus"></i>
+                                <a v-on:click="ChildIndex=index; dscModal(i,'insp-cont');" class="fas ">Add a comment</a>
                             </div>
                         </div>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(add,index) in inspectionAddition.Value" v-bind:key="`INSP${index}`">
-                        <h3>You have added an Inspection</h3>
+                        <h3>You have added an Inspection: {{ add.AHJInspectionName }}</h3>
                         <!-- Delete the added inspection -->
                         <i v-on:click="deleteInspectionAddition(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'inspectionAddition')" class="fas ">Add a comment</a>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(add,index) in AddPIM.Value" v-bind:key="`PIM${index}`">
-                        <h3>You have added a Permit Issue Method</h3>
+                        <h3>You have added a Permit Issue Method: {{ add }}</h3>
                         <!-- Delete added Permit Issue Method -->
                         <i v-on:click="deletePIMAddition(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'AddPIM')" class="fas ">Add a comment</a>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(add,index) in AddDSM.Value" v-bind:key="`DSM-${index}`">
-                        <h3>You have added a Document Submission Method</h3>
+                        <h3>You have added a Document Submission Method: {{ add }}</h3>
                         <!-- Delete Added DSM -->
                         <i v-on:click="deleteDSMAddition(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'AddDSM')" class="fas ">Add a comment</a>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(add,index) in ERRAddition.Value" v-bind:key="`ERR-${index}`">
-                        <h3>You have added an Engineering Review Requirement</h3>
+                        <h3>You have added an Engineering Review Requirement: {{ add.EngineeringReviewType }}</h3>
                         <!-- Delete Added ERR -->
                         <i v-on:click="deleteERRAddition(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'ERRAddition')" class="fas ">Add a comment</a>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(add,index) in FSAddition.Value" v-bind:key="`FS-${index}`">
-                        <h3>You have added a Fee Structure</h3>
+                        <h3>You have added a Fee Structure: {{ add.FeeStructureName }}</h3>
                         <!-- Delete Added Fee Structures -->
                         <i v-on:click="deleteFSAddition(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'FSAddition')" class="fas ">Add a comment</a>
                     </div>
                 </div>
                 <div class="edit-title">Deletions</div>
@@ -63,19 +75,22 @@
                         <h3>You have deleted a Contact</h3>
                         <!-- Remove Contact Deletion -->
                         <i v-on:click="deleteContactDeletion(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'contactDeletions')" class="fas ">Add a comment</a>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(del,index) in inspectionDeletions.Value" v-bind:key="`INSPD-${index}`">
                         <h3>You have deleted an Inspection</h3>
                         <!-- Remove Inspection Deletion -->
                         <i v-on:click="deleteInspectionDeletion(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'inspectionDeletions')" class="fas ">Add a comment</a>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(add,index) in $children" v-bind:key="`INSPCD-${index}`">
                         <div v-if="add.Type==='AHJInspection'">
                             <div v-for="(a,i) in add.Deleted.Value" v-bind:key="`INPSCDC-${i}`">
                                 <!-- Delete Inspection Contact -->
-                                <h3>You have deleted a Contact on AHJInspection: {{ add.data.AHJInspectionName.Value }}</h3>
+                                <h3>You have deleted a Contact on AHJInspection</h3>
                                 <!-- Remove Inspection Contact Deletion --> 
                                 <i v-on:click="deleteContonInsp(index,i)" class="fas fa-minus"></i>
+                                <a v-on:click="ChildIndex=index; dscModal(i,'insp-cont-deletion')" class="fas ">Add a comment</a>
                             </div>
                         </div>
                     </div>
@@ -83,21 +98,25 @@
                         <h3>You have deleted an Engineering Review Requirement</h3>
                         <!-- Remove ERR deletion -->
                         <i v-on:click="deleteERRDeletion(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'ERRDeletions')" class="fas ">Add a comment</a>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(del,index) in FSDeletions.Value" v-bind:key="`FSD-${index}`">
                         <h3>You have deleted a Fee Structure</h3>
                         <!-- Remove Fee Structure Deletion -->
                         <i v-on:click="deleteFSDeletion(index)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'FSDeletions')" class="fas ">Add a comment</a>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(del,index) in DSMDeletion.Value" v-bind:key="`DSMD-${index}`">
                         <h3>You have deleted a Document Submission Method</h3>
                         <!-- Remove DSM Deletion -->
                         <i v-on:click="DSMDeletion.Value.splice(index,1)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'DSMDeletion')" class="fas ">Add a comment</a>
                     </div>
                     <div style="display:flex; justify-content:space-between;background-color: white; width:81%;" v-for="(del,index) in PIMDeletion.Value" v-bind:key="`PIMD-${index}`">
                         <h3>You have deleted a Permit Issue Method</h3>
                         <!-- Remove PIM Deletion -->
                         <i v-on:click="PIMDeletion.Value.splice(index,1)" class="fas fa-minus"></i>
+                        <a v-on:click="dscModal(index,'PIMDeletion')" class="fas ">Add a comment</a>
                     </div>
                 </div>
                 <div class="edit-buttons">
@@ -1488,7 +1507,11 @@ export default {
             EditDate: new Date().toISOString(),
             DateNow: false,
             EditAccepted: -1,
-            EventType: null
+            EventType: null,
+            DataSourceCommentEdit: -1,
+            DataSourceCommentType: "",
+            DataSourceComment: "",
+            ChildIndex: -1,
         }
     },
     computed: {
@@ -1525,6 +1548,31 @@ export default {
         })
     },
     methods: {
+        dscModal(index,type){
+            this.DataSourceCommentEdit = index;
+            this.DataSourceCommentType = type;
+            this.$bvModal.show('comment-modal');
+        },
+        inputComment(){
+            if(this.DataSourceCommentType==='editObjects'){
+                this[this.DataSourceCommentType][this.DataSourceCommentEdit].DataSourceComment = this.DataSourceComment;
+            }
+            else if(this.DataSourceCommentType==='insp-cont'){
+                var child = this.$children[this.ChildIndex];
+                child.AddCont.Value[this.DataSourceCommentEdit].DataSourceComment = this.DataSourceComment;
+            }
+            else if(this.DataSourceCommentType==='insp-cont-deletion'){
+                var child2 = this.$children[this.ChildIndex];
+                child2.Deleted.Value[this.DataSourceCommentEdit] = { ID: child2.Deleted.Value[this.DataSourceCommentEdit] }
+            }
+            else{
+                if(typeof(this[this.DataSourceCommentType].Value[this.DataSourceCommentEdit])!=="object"){
+                    this[this.DataSourceCommentType].Value[this.DataSourceCommentEdit] = { ID: this[this.DataSourceCommentType].Value[this.DataSourceCommentEdit] }
+                }
+                this[this.DataSourceCommentType].Value[this.DataSourceCommentEdit].DataSourceComment = this.DataSourceComment;
+            }
+            this.DataSourceComment = '';
+        },
         //set up map view for page header
         setupLeaflet() {
             //info leaflet needs about map (we want it not to move)

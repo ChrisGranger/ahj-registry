@@ -37,6 +37,8 @@ def add_edit(edit_dict: dict, ReviewStatus='P', ApprovedBy=None, DateEffective=N
         edit.ApprovedBy = ApprovedBy
         edit.DateEffective = DateEffective
     edit.EditType = edit_dict.get('EditType')
+    if 'DataSourceComment' in edit_dict:
+        edit.DataSourceComment = edit_dict.get('DataSourceComment')
     edit.save()
     return edit
 
@@ -424,7 +426,9 @@ def edit_addition(request):
             for obj in new_objs:
                 if AHJ_one_to_many:
                     obj['AHJPK'] = ahj
-
+                dsc = None
+                if 'DataSourceComment' in obj:
+                    dsc = obj.pop('DataSourceComment')
                 row = create_row(model, obj)
                 edit_info_row = row.create_relation_to(parent_row)
                 e = { 'User'         : request.user,
@@ -435,6 +439,8 @@ def edit_addition(request):
                       'OldValue'     : None,
                       'NewValue'     : True,
                       'EditType'     : 'A' }
+                if not dsc is None:
+                    e['DataSourceComment'] = dsc
                 edit = add_edit(e)
                 edits.append(edit)
 
@@ -462,6 +468,10 @@ def edit_deletion(request):
             pks_to_delete = request.data.get('Value', [])
 
             for pk in pks_to_delete:
+                dsc = None
+                if type(pk) is dict:
+                    dsc = pk['DataSourceComment']
+                    pk = pk['ID']
                 row = model.objects.get(pk=pk)
                 e = { 'User'         : request.user,
                       'AHJPK'        : ahj,
@@ -471,6 +481,8 @@ def edit_deletion(request):
                       'OldValue'     : True,
                       'NewValue'     : False,
                       'EditType'     : 'D' }
+                if not dsc is None:
+                    e['DataSourceComment'] = dsc
                 edit = add_edit(e)
 
                 response_data.append(get_serializer(row)(row).data)
