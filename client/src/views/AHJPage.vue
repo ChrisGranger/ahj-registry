@@ -989,6 +989,7 @@
                         <b-form-select-option value="Latest">Latest</b-form-select-option>
                         <b-form-select-option value="Latest Accepted">Latest Accepted</b-form-select-option>
                     </b-form-select>
+                    <h3 style="margin-left:10px;margin-top:15px;">Last Edited: {{this.AHJInfo ? getDate(this.AHJInfo.LastEditTime) : 'Loading'}}</h3>
                 </div>
                 <h1 id='code'> {{ this.AHJInfo ? this.AHJInfo.AHJCode.Value : 'Loading' }} </h1>
                 <div class="break">
@@ -1266,6 +1267,7 @@ import Inspection from '../components/AHJPage/Inspection.vue';
 import EngineeringReviewRequirements from '../components/AHJPage/EngineeringReviewRequirements.vue';
 import FeeStructure from '../components/AHJPage/FeeStructure.vue';
 import axios from "axios";
+import moment from "moment";
 
 export default {
     data() {
@@ -2593,6 +2595,9 @@ export default {
                 this.leafletMap.remove()
                 this.$store.commit("callAPISingleAHJ", this.$route.params.AHJID);
             }
+        },
+        getDate(date){
+            return moment(date).format('MMMM Do YYYY, h:mm:ss a');
         }
     },
     watch: {

@@ -91,6 +91,10 @@ def get_single_ahj(request):
     ahj = AHJ.objects.filter(AHJPK=AHJPK)
     context = {'fields_to_drop': []}
     serialized_ahj = AHJSerializer(ahj, context=context,many=True).data[0]
+    last_date = Edit.objects.filter(AHJPK=AHJPK).order_by('-DateRequested')
+    if last_date:
+        last_date = last_date[0].DateRequested
+        serialized_ahj['LastEditTime'] = last_date
     r_type = request.query_params.get('view')
     Fields = {"AHJInspection","Contact","FeeStructure","EngineeringReviewRequirement"}
     SearchFields = {"Address", "Location"}
