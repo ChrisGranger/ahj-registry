@@ -1,13 +1,13 @@
 <template>
     <div ref='page'>
         <!-- Window to confirm edits, this window is hidden until user clicks "Submit Edits" button -->
-        <div id="confirm-edits" class='edits hide'>
+        <div @keydown.esc="showBigDiv('confirm-edits')" id="confirm-edits" class='edits hide' tabindex="0">
             <b-modal id="comment-modal" title="Add a comment" style="z-index:10000" @ok="inputComment">
                 <label style="display:block;" for="dsc-box">Enter a comment: </label>
                 <textarea style="display:block;" v-model="DataSourceComment" id="dsc-box"/>
             </b-modal>
-            <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('confirm-edits')" class="fas fa-times"></div>
             <div class="big-div">
+                <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('confirm-edits')" class="fas fa-times"></div>
                 <div class="edit-title">Edits</div>
                 <!-- Diplay all changes made on any field -->
                 <div style="display: flex; align-items:center; flex-direction:column;">
@@ -123,14 +123,14 @@
                     <!-- This button will submit all edits to the backend -->
                     <a style="margin:0;padding:0;text-decoration: underline;margin-right:10px;" v-on:click="submitEdits()">Submit Edits</a>
                     <!-- This button will close the Window WITHOUT DELETING EDITS -->
-                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('confirm-edits')">Cancel</a>
+                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('confirm-edits')">Close</a>
                 </div>
             </div>
         </div>
         <!-- Window to add a contact -->
-        <div id='addacontact' class='edits hide'>
-            <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addacontact')" class="fas fa-times"></div>
+        <div @keydown.esc="showBigDiv('addacontact')" tabindex="0" id='addacontact' class='edits hide'>
             <div class="big-div">
+                <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addacontact')" class="fas fa-times"></div>
                 <div style="margin:2px;">Add a Contact</div>
                 <div style="margin:2px;margin-top:0px;margin-bottom:25px;border-bottom:1px solid black;height:0px;"></div>
                 <div class="add-cont">
@@ -236,14 +236,14 @@
                     <!-- Adds contact to list of current contacts -->
                     <a style="margin:0;padding:0;text-decoration: underline;margin-right:10px;" v-on:click="addContact()">{{(this.replacingCont == -1) ?  "Add" : "Save"}}</a>
                     <!-- Closes the window without adding contact to list -->
-                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('addacontact')">Cancel</a>
+                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('addacontact')">Close</a>
                 </div>
             </div>
         </div>
         <!-- Window to add an AHJInspection -->
-        <div id='addainspection' class='edits hide'>
-            <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addainspection')" class="fas fa-times"></div>
+        <div @keydown.esc="showBigDiv('addainspection')" tabindex="0" id='addainspection' class='edits hide'>
             <div class="big-div">
+                <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addainspection')" class="fas fa-times"></div>
                 <div style="margin:2px;">Add an Inspection</div>
                 <div style="margin:2px;margin-top:0px;margin-bottom:25px;border-bottom:1px solid black;height:0px;"/>
                 <div class="add-cont">
@@ -373,14 +373,14 @@
                     <!-- Add this inspection + contacts to list of inspection additions -->
                     <a style="margin:0;padding:0;text-decoration: underline;margin-right:10px;" v-on:click="addInspection()">{{(this.replacingInsp == -1) ?  "Add" : "Save"}}</a>
                     <!-- Close window without adding inspection -->
-                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="replacingCont=-1;showBigDiv('addainspection')">Cancel</a>
+                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="replacingCont=-1;showBigDiv('addainspection')">Close</a>
                 </div>
             </div>
         </div>
         <!-- Add a document submission method -->
-        <div id='addadsub' class='edits hide'>
-        <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addadsub')" class="fas fa-times"></div>
+        <div @keydown.esc="showBigDiv('addasub')" tabindex="0" id='addadsub' class='edits hide'>
         <div class="big-div">
+            <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addadsub')" class="fas fa-times"></div>
             <div style="margin:2px;">Add a Document Submission Method</div>
             <div style="margin:2px;margin-top:0px;margin-bottom:25px;border-bottom:1px solid black;height:0px;"/>
             <div class="add-breakup">
@@ -405,14 +405,14 @@
                 <!-- Add DSM to additions list -->
                     <a style="margin:0;padding:0;text-decoration: underline;margin-right:10px;" v-on:click="addDSM()">Add</a>
                     <!-- Close window without adding DSM to additions list -->
-                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('addadsub')">Cancel</a>
+                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('addadsub')">Close</a>
             </div>
         </div>
         </div>
         <!-- Window to add a permit issue method -->
-        <div id='addapermitissue' class='edits hide'>
-        <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addapermitissue')" class="fas fa-times"></div>
-        <div class="big-div">
+        <div @keydown.esc="showBigDiv('addpermitissue')" tabindex="0" id='addapermitissue' class='edits hide'>
+        <div class="big-div"> 
+            <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addapermitissue')" class="fas fa-times"></div>
             <div style="margin:2px;">Add a Permit Issue Method</div>
             <div style="margin:2px;margin-top:0px;margin-bottom:25px;border-bottom:1px solid black;height:0px;"/>
             <div class="add-breakup">
@@ -437,14 +437,14 @@
                 <!-- Add to list of PIM Additions -->
                     <a style="margin:0;padding:0;text-decoration: underline;margin-right:10px;" v-on:click="addPIM()">Add</a>
                     <!-- Close window without adding PIM to Additions list --> 
-                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('addapermitissue')">Cancel</a>
+                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('addapermitissue')">Close</a>
             </div>
         </div>
         </div>
         <!-- Window to add an Engineering Review Requirement -->
-        <div id="addaerr" class="edits hide">
-            <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addaerr')" class="fas fa-times"></div>
+        <div @keydown.esc="showBigDiv('addaerr')" tabindex="0" id="addaerr" class="edits hide">
             <div class="big-div">
+                <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addaerr')" class="fas fa-times"></div>
                 <div style="margin:2px;">Add an Engineering Review Requirement</div>
                 <div style="margin:2px;margin-top:0px;margin-bottom:25px;border-bottom:1px solid black;height:0px;"/>
                 <div class="add-cont">
@@ -481,14 +481,14 @@
                     <!-- Add ERR to list of ERR Additions -->
                     <a style="margin:0;padding:0;text-decoration: underline;margin-right:10px;" v-on:click="addERR()">{{(this.replacingERR == -1) ?  "Add" : "Save"}}</a>
                     <!-- Close window without adding ERR to additions list -->
-                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('addaerr')">Cancel</a>
+                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('addaerr')">Close</a>
             </div>
             </div>
         </div>
         <!-- Window to add a fee structure -->
-        <div id="addafstruct" class="edits hide">
-            <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addafstruct')" class="fas fa-times"></div>
+        <div @keydown.esc="showBigDiv('addafstruct')" tabindex="0" id="addafstruct" class="edits hide">
             <div class="big-div">
+                <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addafstruct')" class="fas fa-times"></div>
                 <div style="margin:2px;">Add a Fee Structure</div>
                 <div style="margin:2px;margin-top:0px;margin-bottom:25px;border-bottom:1px solid black;height:0px;"/>
                 <div class="add-cont">
@@ -521,13 +521,13 @@
                     <!-- Add FS to additions list -->
                     <a style="margin:0;padding:0;text-decoration: underline;margin-right:10px;" v-on:click="addFS()">{{(this.replacingFS == -1) ?  "Add" : "Save"}}</a>
                     <!-- Close window without adding FS to created list -->
-                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('addafstruct')">Cancel</a>
+                    <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="showBigDiv('addafstruct')">Close</a>
             </div>
             </div>
         </div>
-        <div id="addressLoc" class="edits hide">
-            <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addressLoc')" class="fas fa-times"></div>
+        <div @keydown.esc="showBigDiv('addressLoc')" tabindex="0" id="addressLoc" class="edits hide">
             <div class="big-div">
+                <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('addressLoc')" class="fas fa-times"></div>
                 <div class="edit-title">Edit Address</div>
                 <div class="add-cont" style="flex-basis:100%;">
                 <div style="flex-basis: 100%;margin-bottom:50px;"/>
@@ -570,14 +570,14 @@
                             <!-- Adds contact to list of current contacts -->
                             <a style="margin:0;padding:0;text-decoration: underline;margin-right:10px;" v-on:click="editAddress()">{{(this.editingCont == -1) ?  "Add" : "Save"}}</a>
                             <!-- Closes the window without adding contact to list -->
-                            <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="clearAddrAndLocation();showBigDiv('addressLoc');editingCont = -1">Cancel</a>
+                            <a style="margin:0;padding:0;text-decoration: underline;" v-on:click="clearAddrAndLocation();showBigDiv('addressLoc');editingCont = -1">Close</a>
                         </div>
             </div>
         </div>
         <!-- Window to display edits that were already submitted, i.e. Coming from the backend (see EditObject.vue) -->
-        <div id="edits" class='edits hide'>
-            <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('edits')" class="fas fa-times"></div>
+        <div @keydown.esc="showBigDiv('edits')" tabindex="0" id="edits" class='edits hide'>
             <div id="mid-edits" class='big-div'>
+                <div style="width:15px;height:15px;top:0px;float:right;position:sticky;color:red;" v-on:click="showBigDiv('edits')" class="fas fa-times"></div>
                             <b-modal id="date-modal" title="Set a date" style="z-index:10000" @ok="inputDate">
                 <label v-if="DateNow!=='true'" for="edit-date">When should this edit be applied?</label>
                 <b-form-datepicker v-if="DateNow!=='true'" id="edit-date" v-model="EditDate" class="mb-2"></b-form-datepicker>
@@ -1743,6 +1743,7 @@ export default {
             //find the window we want to display and toggle show/hide
             document.getElementById(elementId).classList.toggle('hide');
             document.getElementById(elementId).classList.toggle('show');
+            document.getElementById(elementId).focus();
             //clear all edits of unsubmitted edits
             this.replacingCont = -1;
             this.replacingInsp = -1;
