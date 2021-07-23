@@ -27,16 +27,16 @@
                         <div v-if="$v.$dirty">
                             <div class="error" v-if="!$v.FirstName.required || !$v.LastName.required">First and Last name are required.</div>
                         </div>
-                        <div class="form-spacing">
-                            <label class="form-label">Username</label>
-                            <div class='spinner-row'>
-                                <b-spinner class="spinner" variant="secondary" v-if="usernameCheckPending"></b-spinner>
-                                <b-form-input size="lg" class="form-input" type="text" placeholder="Username" required v-model="Username" v-on:input="CheckUsernameUnique" :state="($v.Username.$dirty && !usernameCheckPending) ? !$v.Username.$error : null" alt="Username"></b-form-input>
+
+                        <div class="form-spacing flex-row">
+                            <div class="form-name-section">
+                                <label class="form-label">Middle Name</label>
+                                <b-form-input size="lg" class="form-input" type="text" placeholder="Middle Name" v-model="MiddleName" alt="Middle Name"></b-form-input>
                             </div>
-                        </div>
-                        <div v-if="$v.Username.$dirty">
-                            <div class="error" v-if="!$v.Username.required">Username is required.</div>
-                            <div class="error" v-if="!this.usernameIsUnique && !this.usernameCheckPending">Username is already taken.</div> 
+                            <div class="form-name-section">
+                                <label class="form-label">Title</label>
+                                 <b-form-input size="lg" class="form-input" type="text" placeholder="Title" v-model="Title" alt="Title"></b-form-input>
+                            </div>
                         </div>
 
                         <div class="form-spacing">
@@ -53,6 +53,45 @@
                         </div>
 
                         <div class="form-spacing">
+                            <label>Work Phone</label>
+                            <b-form-input size="lg" class="form-input" type="text" placeholder="Work Phone" :state="$v.WorkPhone.$dirty ? !$v.WorkPhone.$error : null" v-model="WorkPhone" alt="Work Phone"></b-form-input>
+                        </div>
+                      <!-- Same as above validator, except this time it checks the format of the phone. This was a custom validator written.-->
+                        <div v-if="$v.$dirty">
+                            <div class="error" v-if="!$v.WorkPhone.PhoneFormat">Incorrect Phone Format. Recommended format: 123-456-7890</div>
+                        </div>
+                        <div v-else>
+                            <b-form-text id="phone-help-text">Recommended phone format: 123-456-7890</b-form-text>
+                        </div>
+
+                        <div class="form-spacing">
+                            <label class="form-label">Preferred Contact Method</label>
+                          <b-form-select size="lg" class="form-select" type="text" placeholder="Preferred Contact Method" v-model="PreferredContactMethod" :options="consts.CHOICE_FIELDS.Contact.PreferredContactMethod.filter(c => ['Email', 'WorkPhone'].includes(c.value))" alt="Preferred Contact Method"></b-form-select>
+                        </div>
+
+                        <div class="form-spacing">
+                            <label class="form-label">Time Zone</label>
+                            <b-form-input size="lg" class="form-input" type="text" placeholder="Time Zone" v-model="ContactTimezone" alt="Time Zone"></b-form-input>
+                        </div>
+
+                        <div class="form-spacing">
+                            <label class="form-label">Company Affiliation</label>
+                            <b-form-input size="lg" class="form-input" type="text" placeholder="Company Affiliation" v-model="CompanyAffiliation" alt="Company Affiliation"></b-form-input>
+                        </div>
+
+                        <div class="form-spacing">
+                            <label class="form-label">Username</label>
+                            <div class='spinner-row'>
+                                <b-spinner class="spinner" variant="secondary" v-if="usernameCheckPending"></b-spinner>
+                                <b-form-input size="lg" class="form-input" type="text" placeholder="Username" required v-model="Username" v-on:input="CheckUsernameUnique" :state="($v.Username.$dirty && !usernameCheckPending) ? !$v.Username.$error : null" alt="Username"></b-form-input>
+                            </div>
+                        </div>
+                        <div v-if="$v.Username.$dirty">
+                            <div class="error" v-if="!$v.Username.required">Username is required.</div>
+                            <div class="error" v-if="!this.usernameIsUnique && !this.usernameCheckPending">Username is already taken.</div> 
+                        </div>
+
+                        <div class="form-spacing">
                             <label class="form-label">Password</label>
                             <b-form-input size="lg" class="form-input" type="password" placeholder="Password" required v-model="Password" :state="$v.Password.$dirty ? (!$v.Password.$error || (this.backendPasswordError !== null && (this.Password !== this.previousPassword))) : null" alt="Password"></b-form-input>
                         </div>
@@ -63,7 +102,7 @@
                             <div class="error" v-if="backendPasswordError && (this.Password === this.previousPassword)">{{backendPasswordError}}</div>
                         </div>
                         <div v-else>
-                            <b-form-text id="password-help-text">Must have 8 or more characters with atleast one letter and one number/symbol.</b-form-text>
+                            <b-form-text id="password-help-text">Must have 8 or more characters with at least one letter and one number/symbol.</b-form-text>
                         </div>
 
                         <div class="form-spacing">
@@ -109,7 +148,7 @@
 <script>
 import axios from "axios";
 import constants from "../../../constants.js";
-import { required, minLength, sameAs } from 'vuelidate/lib/validators';
+import {required, minLength, sameAs, helpers} from 'vuelidate/lib/validators';
 
 // Validators we will use for the different form fields. Added as validators for specific fields under the below validations{} section.
 const ValidEmail = constants.VALID_EMAIL;
@@ -119,16 +158,17 @@ function EmailNotPending (value){ value; return !this._data.emailCheckPending; }
 function EmailUnique (value){ value; return this._data.emailIsUnique; }
 function UsernameNotPending (value){ value; return !this._data.usernameNotPending;}
 function UsernameUnique (value) { value; return this._data.usernameIsUnique;}
+function PhoneFormat (value) { return !helpers.req(value) || constants.VALID_PHONE(value); }
 
 export default {
     data() {
         return {
-            Email: "",
+            consts: constants,
+            ...constants.CONTACT_FIELDS,
+            CompanyAffiliation: "",
+            Username: "",
             Password: "",
             ConfirmPassword: "",
-            FirstName: "",
-            LastName: "",
-            Username: "",
             submitStatus: null,
             backendPasswordError: null,
             backendErrorOccurred: false,
@@ -159,11 +199,17 @@ export default {
                 this.backendErrorOccurred = false;
                 // Create a user with the given email, password, and username fields.
                 axios.post(constants.API_ENDPOINT + "auth/users/", {
-                    "Email": this.Email,
-                    "password": this.Password,
-                    "Username": this.Username,
-                    "FirstName": this.FirstName,
-                    "LastName": this.LastName
+                    FirstName: this.FirstName,
+                    MiddleName: this.MiddleName,
+                    LastName: this.LastName,
+                    Title: this.Title,
+                    Email: this.Email,
+                    WorkPhone: this.WorkPhone,
+                    PreferredContactMethod: this.PreferredContactMethod,
+                    ContactTimezone: this.ContactTimezone,
+                    CompanyAffiliation: this.CompanyAffiliation,
+                    Username: this.Username,
+                    password: this.Password
                 }).then(() => {
                     this.submitStatus = 'OK';
                     document.getElementById("registration-form").reset();
@@ -241,6 +287,9 @@ export default {
             ValidEmail,
             EmailNotPending,
             EmailUnique,
+        },
+        WorkPhone: {
+            PhoneFormat
         },
         Password: {
             required,

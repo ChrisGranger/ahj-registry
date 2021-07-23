@@ -1,5 +1,98 @@
 """
-File of helper methods for uploading 2020 Census Bureau shapefile polygons and AHJ Data
+This is a script of utility functions for recreating an AHJ Registry database.
+The following are the file locations and structure that these functions expect the
+data for upload to be in, and the general order that these functions should be called.
+
+Expected File Tree
+    ::
+
+        ~/AHJRegistryData/:
+            |-- 2020CensusPolygons/:
+                |-- States/:
+                    |-- tl_2020_us_state/:
+                        |-- <files from Census Bureau; should have .shp file>
+                |-- Counties/:
+                    |-- tl_2020_us_county/:
+                        |-- <files from Census Bureau; should have .shp file>
+                |-- CountySubdivisions/:
+                    |-- tl_2020_01_cousub/:
+                        |-- <files from Census Bureau; should have .shp file>
+                    ... (58 folders total)
+                    |-- tl_2020_78_cousub/:
+                        |-- <files from Census Bureau; should have .shp file>
+                |-- Cities/:
+                   |-- tl_2020_01_place/:
+                       |-- <files from Census Bureau; should have .shp file>
+                   ... (58 folders total)
+                   |-- tl_2020_78_place/:
+                       |-- <files from Census Bureau; should have .shp file>
+            |-- AHJRegistryData/:
+               |-- ahjregistrydata.csv
+               |-- ahjcensusnames.csv (optional)
+            |-- UserData/:
+               |-- prod_authtoken_token.csv
+               |-- prod_core_user.csv
+
+Order to Call Functions
+    #. **upload_all_shapefile_types:**
+
+       .. note:: Often when running this function, the shell will freeze.
+                 It is recommended to run each function called by this function's definition separately instead.
+
+       Uploads Census shapefile data by calling functions that upload each type of shapefile.
+       The data is uploaded into temporary tables from which they need to be copied by translate_polygons.
+
+    #. **translate_polygons:**
+
+       Copies the shapefile data from the temporary
+       tables into the shapefile tables used by the AHJ Registry.
+
+    #. **add_enum_values:**
+
+       Populates the tables that store enumerated values with their values.
+
+    #. **create_admin_user:**
+
+       Creates an admin account with api tokens that can be used with the admin dashboard or testing the API.
+       Additional admin user accounts can be created later by running 'python3 manage.py createsuperuser'.
+
+    #. **load_ahj_data_csv:**
+
+       Uploads AHJ data from a CSV downloaded from a running instance of the AHJ Registry.
+       Must have a user account with Email = settings.ADMIN_ACCOUNT_EMAIL to run.
+
+    #. **address_to_contacts:**
+
+       Ensures every Contact has an Address. If a Contact does not already have an Address,
+       this creates an Address row for it. This is ideally enforced by the database.
+
+    #. **locations_to_addresses:**
+
+       Ensures every Address has a Location. If an Address does not already have a Location,
+       this creates a Location row for it. This is ideally enforced by the database.
+
+    #. **load_ahj_census_names_ahj_table:**
+
+        .. note:: This assumes that the AHJName values in the AHJ table are still the original names given by NREL.
+
+       Populates the AHJCensusName table with AHJName,
+       and StateProvince using those values on the AHJ table and Address table.
+
+    #. **load_ahj_census_names_csv:**
+       Populates the AHJCensusName table with AHJName,
+       and StateProvince using a CSV with columns (AHJID, AHJName, StateProvince).
+
+    #. **pair_all:**
+
+       .. note:: Often when running this function, the shell will freeze.
+                 It is recommended to run each function called by this function's definition separately instead.
+
+       Pairs AHJs with their shapefile polygon, if it is found.
+       This function calls other functions that pair each type of polygon to an AHJ.
+
+    #. **load_user_data_csv:**
+
+       Uploads user data from a CSV into the User and Contact tables.
 """
 
 import csv
@@ -12,11 +105,9 @@ from .utils import ENUM_FIELDS, get_enum_value_row
 BASE_DIR = os.path.expanduser('~/AHJRegistryData/')
 BASE_DIR_SHP = BASE_DIR + '2020CensusPolygons/'
 
-"""
-Dictionaries that map fields in shapefiles to
-fields in the temporary tables (StateTemp, etc)
-to hold the shapefile data.
-"""
+# Dictionaries that map fields in shapefiles to
+# fields in the temporary tables (StateTemp, etc)
+# to hold the shapefile data.
 
 state_mapping = {
     'GEOID': 'GEOID',
@@ -67,15 +158,6 @@ city_mapping = {
     'mpoly': 'MULTIPOLYGON'
 }
 
-"""
-Methods for uploading shapefiles to temporary tables (StateTemp, ...)
-Expects the file structure:
-- 2020CensusPolygons
-    - States
-    - Counties
-    - Citites
-    - CountySubdivisions
-"""
 
 def upload_all_shapefile_types():
     upload_state_shapefiles()
@@ -147,13 +229,11 @@ def get_other_polygon_type_fields(obj, polygon):
     }
 
 
-"""
-Moves the shapefile data from the temporary tables (StateTemp, ...)
-to the Polygon tables (Polygon, StatePolygon, ...)
-"""
-
-
 def translate_polygons():
+    """
+    Moves the shapefile data from the temporary tables (StateTemp, ...)
+    to the Polygon tables (Polygon, StatePolygon, ...)
+    """
     translate_states()
     translate_counties()
     translate_cities()
@@ -218,7 +298,7 @@ def add_enum_values():
 def is_zero_depth_field(name):
     """
     Checks if a field name has one dot in it.
-    For example, BuildingCode.Value
+    For example, the string ``'BuildingCode.Value'`` has one dot.
     """
     if name.find('.') != -1 and name.find('.') == name.rfind('.'):
         return True
@@ -291,7 +371,7 @@ def create_contact(contact_dict):
 def enum_values_to_primary_key(ahj_dict):
     """
     Replace enum values in a dict with the row of the value in its enum model.
-    For example, '2021IBC' => BuildingCode.objects.get(Value='2021IBC')
+    For example, ``'2021IBC'`` is translated to the object ``BuildingCode.objects.get(Value='2021IBC')``.
     """
     for field in ahj_dict:
         if type(ahj_dict[field]) is dict:
@@ -465,7 +545,11 @@ def address_to_contacts():
 # Dict to translate state FIPS codes to state abbreviations
 def load_ahj_census_names_csv():
     """
-    Save AHJ census names from a CSV with columns: (AHJID, AHJCensusName, StateProvince)
+    Save AHJ census names from a CSV with columns:
+
+    ======= =============== ===============
+     AHJID   AHJCensusName   StateProvince
+    ======= =============== ===============
     """
     with open(BASE_DIR + 'AHJRegistryData/ahjcensusnames.csv') as file:
         reader = csv.DictReader(file, delimiter=',', quotechar='"')
@@ -481,8 +565,8 @@ def load_ahj_census_names_csv():
 
 def load_ahj_census_names_ahj_table():
     """
-    Save AHJ census names are AHJ names.
-    Use only if AHJ names are still AHJ census names.
+    Save AHJName values in the AHJ table and StateProvince values in the Address table to the AHJCensusNames table.
+    Use if the AHJName values still match the names given in the NREL AHJ list.
     """
     i = 1
     for ahj in AHJ.objects.all():
@@ -567,12 +651,10 @@ state_fips_to_abbr = {
 abbr_to_state_fips = dict(map(reversed, state_fips_to_abbr.items()))
 
 
-"""
-Helpers to assign an AHJ to its polygon by AHJName and polygon name
-"""
-
-
 def pair_all():
+    """
+    Helpers to assign an AHJ to its polygon by AHJName and polygon name.
+    """
     AHJ.objects.all().update(PolygonID=None)
     pair_polygons(CountyPolygon)
     pair_polygons(CityPolygon)

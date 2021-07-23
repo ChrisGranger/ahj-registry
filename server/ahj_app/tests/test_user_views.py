@@ -1,12 +1,132 @@
 from django.urls import reverse
-from ahj_app.models import User, Contact, AHJUserMaintains, PreferredContactMethod, WebpageToken
-from fixtures import *
-import pytest
+from django.dispatch import receiver
 from django.conf import settings
+from ahj_app.models import User, Contact, AHJUserMaintains, PreferredContactMethod, WebpageToken, APIToken, SunspecAllianceMember, SunspecAllianceMemberDomain, AHJOfficeDomain
+from fixtures import *
+from ahj_app.signals import *
+import pytest
+import time
+
+token = ''
+uid = ''
+
+@pytest.fixture
+def sunspec_alliance_member():
+    member = SunspecAllianceMember.objects.create(MemberID=1, MemberName='Test')
+    SunspecAllianceMemberDomain.objects.create(DomainID=1, MemberID=member, Domain='test.abcd')
+
+@pytest.fixture
+def ahj_office_domain(ahj_obj):
+    AHJOfficeDomain.objects.create(DomainID=1, AHJID=ahj_obj, Domain='test.abcd')
+
+# waits for activation email's uid and token to be created abd assigns local token, uid variables
+@receiver(activation_email_sent)
+def user_activation_listener(sender, **kwargs):
+    global uid, token
+    uid = kwargs['uid']
+    token = kwargs['token']
+
+# creates a new user and returns the created uid and token sent in the activation email
+def get_activation_uid_and_token(client, userData):
+    response = client.post('/api/v1/auth/users/', userData)
+    time.sleep(1) # wait some arbitrary time for signal receiver to get token and uid
+    return token, uid
 
 """
     User View Endpoints
 """
+@pytest.mark.django_db
+def test_activate_user__user_is_not_member(generate_client_with_webpage_credentials, sunspec_alliance_member):
+    client = generate_client_with_webpage_credentials(Email='f@f.femdosikf')
+    token, uid = get_activation_uid_and_token(client, {'Username': 'someone', 'FirstName': 'John', 'LastName': 'Doe', 'Email': 'e@fneu.com', 'password': 'hfewdus34729'})
+    
+    url = reverse('user-activate')
+    response = client.post(url, {'uid': uid, 'token': token})
+    user = User.objects.get(Username='someone')
+    assert response.status_code == 204
+    assert user.MemberID == None
+
+@pytest.mark.django_db
+def test_activate_user__user_is_member(generate_client_with_webpage_credentials, sunspec_alliance_member):
+    client = generate_client_with_webpage_credentials(Email='f@f.femdosikf')
+    token, uid = get_activation_uid_and_token(client, {'Username': 'someone', 'FirstName': 'John', 'LastName': 'Doe', 'Email': 'e@test.abcd', 'password': 'hfewdus34729'})
+    
+    url = reverse('user-activate')
+    response = client.post(url, {'uid': uid, 'token': token})
+    user = User.objects.get(Username='someone')
+    assert response.status_code == 204
+    assert user.MemberID.MemberID == 1
+
+@pytest.mark.django_db
+def test_activate_user__user_is_not_ahj_maintainer(generate_client_with_webpage_credentials, ahj_office_domain):
+    client = generate_client_with_webpage_credentials(Email='f@f.femdosikf')
+    token, uid = get_activation_uid_and_token(client, {'Username': 'someone', 'FirstName': 'John', 'LastName': 'Doe', 'Email': 'e@fneu.com', 'password': 'hfewdus34729'})
+    
+    url = reverse('user-activate')
+    response = client.post(url, {'uid': uid, 'token': token})
+    user = User.objects.get(Username='someone')
+    assert response.status_code == 204
+    assert AHJUserMaintains.objects.filter(UserID=user.UserID).count() == 0
+
+@pytest.mark.django_db
+def test_activate_user__user_is_ahj_maintainer(generate_client_with_webpage_credentials, ahj_office_domain):
+    client = generate_client_with_webpage_credentials(Email='f@f.femdosikf')
+    token, uid = get_activation_uid_and_token(client, {'Username': 'someone', 'FirstName': 'John', 'LastName': 'Doe', 'Email': 'e@test.abcd', 'password': 'hfewdus34729'})
+    
+    url = reverse('user-activate')
+    response = client.post(url, {'uid': uid, 'token': token})
+    user = User.objects.get(Username='someone')
+    assert response.status_code == 204
+    assert AHJUserMaintains.objects.filter(UserID=user.UserID).count() == 1
+
+
+def register_user_dict():
+    return {'FirstName': 'first', 'MiddleName': 'middle', 'LastName': 'last',
+            'Title': 'title', 'Email': 'email@email.email', 'WorkPhone': '123-456-7890',
+            'PreferredContactMethod': 'Email', 'ContactTimezone': 'PST',
+            'Username': 'username', 'password': '#$()asdf!@{}1'}
+
+
+@pytest.mark.parametrize(
+    'fields_to_set, response_code', [
+        ({}, 201),
+        ({'MiddleName': '', 'Title': '', 'WorkPhone': '', 'PreferredContactMethod': '', 'ContactTimezone': ''}, 201),
+        ({'FirstName': ''}, 400),
+        ({'LastName': ''}, 400),
+        ({'Email': ''}, 400),
+        ({'Username': ''}, 400),
+        ({'password': ''}, 400)
+    ]
+)
+@pytest.mark.django_db
+def test_register_user(fields_to_set, response_code, api_client, add_enum_value_rows):
+    user_dict = register_user_dict()
+    for k, v in fields_to_set.items():
+        user_dict[k] = v
+    url = reverse('djoser:user-list')
+    response = api_client.post(url, user_dict, format='json')
+    assert response.status_code == response_code
+    if response_code == 201:
+        result = response.data
+        user_fields_to_match = {*result.keys()}.intersection(user_dict.keys())
+        contact_fields_to_match = {*result['ContactID'].keys()}.intersection(user_dict.keys())
+        assert all(user_dict[field] == result[field] for field in user_fields_to_match)
+        assert all(user_dict[field] == result['ContactID'][field]['Value'] for field in contact_fields_to_match)
+        user = User.objects.get(UserID=result['UserID'])
+        assert user.is_active is False
+        api_token = APIToken.objects.get(user=user)
+        assert api_token.is_active is False
+        assert api_token.expires is None
+
+
+@pytest.mark.django_db
+def test_register_user__missing_fields(api_client, add_enum_value_rows):
+    user_dict = register_user_dict()
+    url = reverse('djoser:user-list')
+    for field in user_dict.keys():
+        response = api_client.post(url, {k: v for k, v in user_dict.items() if k != field}, format='json')
+        assert response.status_code == 400
+
 
 @pytest.mark.django_db
 def test_get_active_user(client_with_webpage_credentials):

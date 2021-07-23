@@ -13,6 +13,28 @@
       </div>
       <component-ahj-table-view></component-ahj-table-view>
     </div>
+    <b-modal id="webpage-throttle-modal">
+        <template #modal-title>
+            <h1 class='modal-title'>{{`Search Limit Reached`}}</h1>
+        </template>
+        <template v-if='!showMemberSupportText'>
+          <p class='modal-text modal-primary-text'>Please become a SunSpec Alliance member to unlock unlimited webpage searches.</p>
+          <p class='modal-text modal-help-text'>Contact <a href="mailto:membership@sunspec.org">membership@sunspec.org</a> to set up a membership.</p>
+          <hr>
+          <p class='modal-text modal-secondary-text' @click='showMemberSupportText = true'>I am a member</p>
+        </template>
+        <template v-else>
+          <p class='modal-text modal-member-help-text'>If your organization is already a SunSpec member, please create an account with your company email. </p>
+          <p class='modal-text modal-member-help-text'>Contact support@sunspec.org if your account should have unlimited access.</p>
+          <hr>
+          <p class='modal-text modal-secondary-text' @click='showMemberSupportText = false'>Back</p>
+        </template>
+        <template #modal-footer>
+            <b-button id="modal-close-button" pill variant='primary' @click="$bvModal.hide('webpage-throttle-modal')">
+              OK
+            </b-button>
+        </template>
+    </b-modal>
   </div>
 </template>
 
@@ -23,14 +45,15 @@ import AHJSearchPageFilter from "../components/SearchPage/AHJSearchPageFilter.vu
 import AHJTablePagination from "../components/SearchPage/AHJTablePagination";
 import AHJTableResultInfo from "../components/SearchPage/AHJTableResultInfo";
 import "intro.js/minified/introjs.min.css";
-const introJs = require('intro.js');
+import introJs from 'intro.js';
 export default {
   data() {
     return {
       introStep: 0,
       runningTour: false,
       tutorial: null,
-      filterToggled: true
+      filterToggled: true,
+      showMemberSupportText: false,
     }
   },
   created() { // called before 'mounted' is called for child components
@@ -170,6 +193,11 @@ export default {
       if (newVal && this.runningTour) {
         document.querySelector('.introjs-nextbutton').style.display = '';
       }
+    },
+    '$store.state.apiErrorInfo.status': function(newVal) {
+      if (newVal === 429){
+        this.$bvModal.show('webpage-throttle-modal')
+      }
     }
   }
 };
@@ -210,6 +238,46 @@ export default {
   grid-column: 2;
   text-align: right;
 }
+
+.modal-title {
+  font-size: 1.6rem !important;
+}
+
+#modal-close-button {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: ivory;
+  width: 20%;
+  line-height: 2rem;
+  box-shadow: 1px 3px 2px #888888;
+  outline-width: 0;
+}
+
+.modal-text {
+  text-align: center;
+}
+
+.modal-primary-text {
+  font-size: 1.3rem;
+}
+
+.modal-member-help-text {
+  font-size: 1.2rem;
+}
+
+.modal-secondary-text {
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: underline;
+  color: #196dd6;
+  padding: 0;
+  margin: 0;
+}
+
+hr {
+  width: 70%;
+}
+
 @media (max-width: 1100px){
   .ahj-search-container {
     grid-template-rows: auto fit-content(40%);

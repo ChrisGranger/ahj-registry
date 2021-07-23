@@ -2,11 +2,13 @@ import json
 import re
 
 from django.apps import apps
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 
-from .serializers import *
 import googlemaps
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
+
+from .models import AHJ
 
 
 ENUM_FIELDS = {
@@ -40,6 +42,14 @@ gmaps = googlemaps.Client(key=settings.GOOGLE_MAPS_KEY)
 
 
 def get_ob_value_primitive(ob_json, field_name, throw_exception=True, exception_return_value=None):
+    """
+    Returns the ``'Value'`` primitive value from an Orange Button dict.
+
+    :param ob_json: The Orange Button dict.
+    :param field_name: The field to get the Value primitive from.
+    :param throw_exception: Boolean whether to throw an error if the field_name or Value primitive in the dict.
+    :param exception_return_value: What value to return if an error is thrown and caught.
+    """
     try:
         if isinstance(ob_json[field_name], list):
             values = []
@@ -53,10 +63,16 @@ def get_ob_value_primitive(ob_json, field_name, throw_exception=True, exception_
         return exception_return_value # returns empty string if the json didn't have the field name as a key
     
 def check_address_empty(address):
+    """
+    Checks whether a string has numbers or letters.
+    """
     return re.search('[a-zA-Z0-9]', address) # If number or letter exists, then at least one address field has been provided
 
 
 def get_str_location(location):
+    """
+    Returns a GEOS Point representation of an Orange Button Location.
+    """
     lng, lat = get_ob_value_primitive(location, 'Longitude'), get_ob_value_primitive(location, 'Latitude')
     try:
         if lat is not None and lng is not None:
@@ -67,6 +83,9 @@ def get_str_location(location):
 
 
 def get_str_address(address):
+    """
+    Returns a string representation of an Orange Button Address dict.
+    """
     return \
         get_ob_value_primitive(address, 'AddrLine1', exception_return_value='') + ' ' + \
         get_ob_value_primitive(address, 'AddrLine2', exception_return_value='') + ' ' + \
@@ -80,7 +99,9 @@ def get_str_address(address):
 def get_location_gecode_address_str(address):
     """
     Returns the latlng of an address given in the request Address parameter
-    The format is an Orange Button Location object: https://obeditor.sunspec.org/#/?views=Location
+    The format is an `Orange Button Location`_ object:
+
+    .. _Orange Button Location: https://obeditor.sunspec.org/#/?views=Location
     """
     location = {
         'Latitude': {
@@ -101,11 +122,17 @@ def get_location_gecode_address_str(address):
     return location
 
 def get_elevation(Address):
+    """
+    Returns a Location object with Latitude, Longitude and Elevation of an Address.
+
+    :param Address: a string representation of an Address.
+    """
     loc = get_location_gecode_address_str(Address)
-    location = { 'lat': loc['Latitude']['Value'], 'lng': loc['Longitude']['Value'] }
-    elev = gmaps.elevation((loc['Latitude']['Value'],loc['Longitude']['Value']))
-    loc['Elevation'] = {'Value': 0}
-    loc['Elevation']['Value'] = elev[0]['elevation']
+    lat, lng = loc['Latitude']['Value'], loc['Longitude']['Value']
+    loc['Elevation'] = {'Value': None}
+    if lat is not None and lng is not None:
+        elev = gmaps.elevation((lat, lng))
+        loc['Elevation']['Value'] = elev[0]['elevation']
     return loc
 
 def get_enum_value_row(enum_field, enum_value):
@@ -118,6 +145,10 @@ def get_enum_value_row(enum_field, enum_value):
 
 
 def get_enum_value_row_else_null(enum_field, enum_value):
+    """
+    Finds the row of the enum table given the field name and its enum value using ``get_enum_value_row``.
+    If ``get_enum_value_row`` throws an error, this catches it and returns ``null``.
+    """
     try:
         if enum_value is None:
             return None
@@ -128,73 +159,67 @@ def get_enum_value_row_else_null(enum_field, enum_value):
         return None
 
 
-def simple_sanitize(s: str):
-    """
-    Sanitize SQL string inputs simply by dropping ';' and '''
-    """
-    if s is not None:
-        return s.replace(';', '').replace('\'', '')
-    return None
-
-
-def get_name_query_cond(type: str, val: str, query_params: dict):
+def get_name_query_cond(column: str, val: str, query_params: dict):
     """
     Returns the entered string as part of an SQL
     condition on the AHJ table of the form:
-            AHJ.`type` = 'val' AND
-    if val is not None, otherwise it returns the
-    empty string to represent no condition on type.
+
+    .. code-block:: sql
+
+        AHJ.`column` = 'val' AND
+
+    If val is not None, otherwise it returns the
+    empty string to represent no condition on the column.
     """
-    if val is not None and type is not None:
-        query_params[type] = '%' + val + '%'
-        return 'AHJ.' + type + ' LIKE %(' + type + ')s AND '
+    if val is not None and column is not None:
+        query_params[column] = '%' + val + '%'
+        return 'AHJ.' + column + ' LIKE %(' + column + ')s AND '
     return ''
 
 
-def get_list_query_cond(type: str, val: list, query_params: dict):
+def get_list_query_cond(column: str, val: list, query_params: dict):
     """
     Returns the entered list of strings as part of
     an SQL condition on the AHJ table of the form:
-            (AHJ.`type` = 'val1' OR AHJ.`type` = 'val2' OR ... ) AND
+
+    .. code-block:: sql
+
+        (AHJ.`column` = 'val1' OR AHJ.`column` = 'val2' OR ...) AND
+
     """
     if val is not None and len(val) != 0:
         or_list = []
         for i in range(len(val)):
-            param_name = f'{type}{i}'
+            param_name = f'{column}{i}'
             query_params[param_name] = val[i]
-            or_list.append('AHJ.' + type + '=%(' + param_name + ')s')
+            or_list.append('AHJ.' + column + '=%(' + param_name + ')s')
         ret_str = '(' + ' OR '.join(or_list) + ') AND '
         return ret_str
     return ''
 
 
-def get_basic_user_query_cond(type: str, val: str, query_params: dict):
-    if val is not None:
-        query_params[type] = val
-        return 'Address.' + type + '=%(' + type + ')s AND '
-    return ''
-
-
-def get_basic_query_cond(type: str, val: str, query_params: dict):
+def get_basic_query_cond(column: str, val: str, query_params: dict):
     """
     Returns the entered string as part of an SQL
     condition on the AHJ table of the form:
-            AHJ.`type` = 'val' AND
-    if val is not None, otherwise it returns the
-    empty string to represent no condition on type.
+
+    .. code-block:: sql
+
+        AHJ.`column` = 'val' AND
+
+    If val is not None, otherwise it returns the
+    empty string to represent no condition on the column.
     """
     if val is not None:
-        query_params[type] = val
-        return 'AHJ.' + type + '=%(' + type + ')s AND '
+        query_params[column] = val
+        return 'AHJ.' + column + '=%(' + column + ')s AND '
     return ''
 
 
 def point_to_polygon_geojson(g):
     """
-    Takes a GeoJSON point and converts it
-    into a GeoJSON polygon
-    GeoJSON polygons must have 0 or >= 4 points
-    so the GeoJSON point coordinates are duplicated 4 times
+    Takes a GeoJSON point and converts it into a GeoJSON polygon.
+    GeoJSON polygons must have 0 or >= 4 points so the GeoJSON point coordinates are duplicated 4 times.
     """
     point_coordinates = g['geometry']['coordinates']
     polygon_geojson = {

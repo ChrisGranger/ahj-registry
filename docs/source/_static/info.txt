@@ -1,0 +1,2 @@
+Static files go in this directory.
+For example, see https://docs.readthedocs.io/en/stable/guides/adding-custom-css.html

@@ -1,3 +1,9 @@
+"""
+This contains models for the Orange Button objects on `Authority Having Jurisdiction`_ object definition
+that have enumerations. Each model has a primary key field, and a value field that stores the enum value.
+
+.. _Authority Having Jurisdiction: https://obeditor.sunspec.org/?views=AuthorityHavingJurisdiction
+"""
 from django.contrib.gis.db import models
 
 

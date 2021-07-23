@@ -39,12 +39,12 @@ def test_reset_password(password, create_user):
 
 
 @pytest.mark.django_db
-def test_partition_by_field_users_by_api_token(create_user, create_user_with_api_token):
+def test_partition_by_field_users_by_api_token(create_user):
     for x in range(0, 10):
         if x % 2 == 0:
-            create_user()
+            create_user().api_token.delete()
         else:
-            create_user_with_api_token()
+            create_user()
     user_queryset = User.objects.all()
     those_with_field_value, those_without_field_value = admin_actions.partition_by_field(user_queryset, 'api_token', None)
     assert None in those_with_field_value.values_list('api_token', flat=True)
@@ -104,8 +104,8 @@ def test_set_delete(form_value, expected_output):
     ]
 )
 @pytest.mark.django_db
-def test_delete_toggle_api_token_is_deleted(delete, create_user_with_api_token):
-    user = create_user_with_api_token()
+def test_delete_toggle_api_token_is_deleted(delete, create_user_with_active_api_token):
+    user = create_user_with_active_api_token()
     admin_actions.delete_toggle_api_token(user, delete=delete)
     assert APIToken.objects.filter(user=user).exists() != (delete if delete is not None else False)
 
@@ -118,8 +118,8 @@ def test_delete_toggle_api_token_is_deleted(delete, create_user_with_api_token):
     ]
 )
 @pytest.mark.django_db
-def test_delete_toggle_api_token_is_toggled(toggle, create_user_with_api_token):
-    user = create_user_with_api_token()
+def test_delete_toggle_api_token_is_toggled(toggle, create_user_with_active_api_token):
+    user = create_user_with_active_api_token()
     admin_actions.delete_toggle_api_token(user, toggle=toggle)
     assert APIToken.objects.get(user=user).is_active == (toggle if toggle is not None else True)
 
@@ -127,8 +127,7 @@ def test_delete_toggle_api_token_is_toggled(toggle, create_user_with_api_token):
 @pytest.mark.django_db
 def test_delete_toggle_api_token_user_has_no_api_token(create_user):
     user = create_user()
-    if hasattr(user, 'api_token'):
-        user.api_token.delete()
+    user.api_token.delete()
     admin_actions.delete_toggle_api_token(user, toggle=True, delete=False)
     assert not APIToken.objects.filter(user=user).exists()
 

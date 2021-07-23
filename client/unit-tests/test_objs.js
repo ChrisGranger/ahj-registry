@@ -167,3 +167,20 @@ export let Edit = {
     ChangedBy: "No one",
     ReviewStatus: "A"
 }
+
+export let geoJSONLocation = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -119.088827,
+                    36.315125
+                ]
+            }
+        }
+    ]
+}

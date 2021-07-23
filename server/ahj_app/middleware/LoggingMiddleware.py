@@ -9,7 +9,7 @@ class SkipRequestLoggingMiddleware(LoggingMiddleware):
 
     def __call__(self, request):
         """
-        Overridden to skip calling self.process_request(request, response).
+        Overridden to skip calling ``self.process_request(request, response)``.
         Requests are not logged anymore; only responses to requests are logged.
         """
         self.cached_request_body = request.body

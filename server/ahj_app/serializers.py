@@ -7,6 +7,27 @@ from rest_framework import serializers
 from rest_framework_gis import serializers as geo_serializers
 from djoser.serializers import UserCreateSerializer
 from .models import *
+from .utils import get_enum_value_row_else_null
+
+
+def filter_excluded_fields(serializer_instance, serializer_model):
+    """
+    Removes fields to be serialized by a serializer instance
+    that are in the serializer's model's SERIALIZER_EXCLUDED_FIELDS.
+    """
+    for field in serializer_model.SERIALIZER_EXCLUDED_FIELDS:
+        if field in serializer_instance.fields:
+            serializer_instance.fields.pop(field)
+
+
+def filter_excluded_fields(serializer_instance, serializer_model):
+    """
+    Removes fields to be serialized by a serializer instance
+    that are in the serializer's model's SERIALIZER_EXCLUDED_FIELDS.
+    """
+    for field in serializer_model.SERIALIZER_EXCLUDED_FIELDS:
+        if field in serializer_instance.fields:
+            serializer_instance.fields.pop(field)
 
 
 class PolygonSerializer(geo_serializers.GeoFeatureModelSerializer):
@@ -29,20 +50,26 @@ class PolygonSerializer(geo_serializers.GeoFeatureModelSerializer):
 
 class OrangeButtonSerializer(serializers.Field):
     """
-    Custom serializer to add the Orange Button
-    primitives to each field.
-    "<field_name>": {
-        "Value": "<value>,
-        ...
-    }
+    Custom serializer to add the Orange Button primitives to each field.
+    Below is example JSON:
+    
+    .. code-block:: json
+
+        {
+            "<field_name>": {
+                "Value": "<value>"
+            }
+        }
+
+    Currently, only Orange Button's **Value** primitive is added.
     """
     def get_attribute(self, instance):
         """
         Overridden method for correctly adding
         Orange Button primitives even when the
-        field's value is null
+        field's value is null.
         Otherwise, this class' to_representation
-        will not be called by the caller serializer
+        will not be called by the calling serializer.
         """
         attribute = super().get_attribute(instance)
         if attribute is None:
@@ -53,8 +80,7 @@ class OrangeButtonSerializer(serializers.Field):
     def to_representation(self, value):
         if type(value) is dict and 'Value' in value and value['Value'] is None:
             return value
-        ob_obj = {}
-        ob_obj['Value'] = value
+        ob_obj = {'Value': value}
         return ob_obj
 
 class EnumModelSerializer(serializers.Serializer):
@@ -75,7 +101,7 @@ class EnumModelSerializer(serializers.Serializer):
 
 class FeeStructureSerializer(serializers.Serializer):
     """
-    Serializes Orange Button FeeStrucuture object to OrderedDict
+    Serializes Orange Button FeeStructure object to OrderedDict
     """
     FeeStructurePK = OrangeButtonSerializer()
     FeeStructureID = OrangeButtonSerializer()
@@ -92,9 +118,7 @@ class FeeStructureSerializer(serializers.Serializer):
         that are not meant for public api users.
         """
         if self.context.get('is_public_view', False):
-            for field in FeeStructure.SERIALIZER_EXCLUDED_FIELDS:
-                if field in self.fields:
-                    self.fields.pop(field)
+            filter_excluded_fields(self, FeeStructure)
         return super().to_representation(feestructure)
 
 
@@ -119,9 +143,7 @@ class LocationSerializer(serializers.Serializer):
         that are not meant for public api users.
         """
         if self.context.get('is_public_view', False):
-            for field in Location.SERIALIZER_EXCLUDED_FIELDS:
-                if field in self.fields:
-                    self.fields.pop(field)
+            filter_excluded_fields(self, Location)
         return super().to_representation(location)
 
 
@@ -150,9 +172,7 @@ class AddressSerializer(serializers.Serializer):
         that are not meant for public api users.
         """
         if self.context.get('is_public_view', False):
-            for field in Address.SERIALIZER_EXCLUDED_FIELDS:
-                if field in self.fields:
-                    self.fields.pop(field)
+            filter_excluded_fields(self, Address)
         return super().to_representation(address)
 
 
@@ -184,9 +204,7 @@ class ContactSerializer(serializers.Serializer):
         that are not meant for public api users.
         """
         if self.context.get('is_public_view', False):
-            for field in Contact.SERIALIZER_EXCLUDED_FIELDS:
-                if field in self.fields:
-                    self.fields.pop(field)
+            filter_excluded_fields(self, Contact)
         return super().to_representation(contact)
 
 
@@ -202,6 +220,16 @@ class RecursiveField(serializers.Serializer):
         """
         serializer = self.parent.parent.__class__(value, context=self.context)
         return serializer.data
+
+
+class APITokenSerializer(serializers.Serializer):
+    """
+    Serializes APIToken to OrderedDict
+    """
+    auth_token = serializers.CharField(source='key')
+    is_active = serializers.BooleanField()
+    expires = serializers.DateTimeField()
+
 
 class UserSerializer(serializers.Serializer):
     """
@@ -219,7 +247,7 @@ class UserSerializer(serializers.Serializer):
     CommunityScore = serializers.IntegerField()
     SignUpDate = serializers.DateField()
     MaintainedAHJs = serializers.ListField(source='get_maintained_ahjs')
-    APIToken = serializers.CharField(source='get_API_token')
+    APIToken = APITokenSerializer(source='get_API_token')
     is_superuser = serializers.BooleanField()
 
     def to_representation(self, user):
@@ -232,9 +260,7 @@ class UserSerializer(serializers.Serializer):
         sensitive data being serialized when it's not needed.
         """
         if self.context.get('is_public_view', True):
-            for field in User.SERIALIZER_EXCLUDED_FIELDS:
-                if field in self.fields:
-                    self.fields.pop(field)
+            filter_excluded_fields(self, User)
         return super().to_representation(user)
 
 
@@ -244,10 +270,20 @@ class UserCreateSerializer(UserCreateSerializer):
     Used when a new user is created.
     """
     FirstName = serializers.CharField()
+    MiddleName = serializers.CharField(allow_blank=True)
     LastName = serializers.CharField()
-    
+    Title = serializers.CharField(allow_blank=True)
+    WorkPhone = serializers.CharField(allow_blank=True)
+    PreferredContactMethod = serializers.CharField(allow_blank=True)
+    ContactTimezone = serializers.CharField(allow_blank=True)
+
     def validate(self, attrs):
         contact_fields = {field.name for field in Contact._meta.get_fields()}
+        pcm = get_enum_value_row_else_null('PreferredContactMethod', attrs['PreferredContactMethod'])
+        if pcm is None:
+            attrs.pop('PreferredContactMethod')
+        else:
+            attrs['PreferredContactMethod'] = pcm
         user_dict = OrderedDict({k: v for k, v in attrs.items() if k not in contact_fields})
         super().validate(user_dict)
         return attrs
@@ -272,7 +308,12 @@ class UserCreateSerializer(UserCreateSerializer):
                   'CommunityScore',
                   'SecurityLevel',
                   'FirstName',
-                  'LastName')
+                  'MiddleName',
+                  'LastName',
+                  'Title',
+                  'WorkPhone',
+                  'PreferredContactMethod',
+                  'ContactTimezone')
 
 
 class CommentSerializer(serializers.Serializer):
@@ -294,10 +335,14 @@ class DocumentSubmissionMethodUseSerializer(serializers.Serializer):
     Value = serializers.CharField(source='get_value')
 
     def to_representation(self, dsmu):
+        """
+        Returns an OrderedDict representing an DocumentSubmissionMethod object
+        Note not every AHJ has every child object.
+        If 'is_public_view' is True, will not serialize fields
+        that are not meant for public api users.
+        """
         if self.context.get('is_public_view', False):
-            for field in AHJDocumentSubmissionMethodUse.SERIALIZER_EXCLUDED_FIELDS:
-                if field in self.fields:
-                    self.fields.pop(field)
+            filter_excluded_fields(self, AHJDocumentSubmissionMethodUse)
         return super().to_representation(dsmu)
 
 class PermitIssueMethodUseSerializer(serializers.Serializer):
@@ -308,10 +353,14 @@ class PermitIssueMethodUseSerializer(serializers.Serializer):
     Value = serializers.CharField(source='get_value')
 
     def to_representation(self, pimu):
+        """
+        Returns an OrderedDict representing an PermitIssueMethod object
+        Note not every AHJ has every child object.
+        If 'is_public_view' is True, will not serialize fields
+        that are not meant for public api users.
+        """
         if self.context.get('is_public_view', False):
-            for field in AHJPermitIssueMethodUse.SERIALIZER_EXCLUDED_FIELDS:
-                if field in self.fields:
-                    self.fields.pop(field)
+            filter_excluded_fields(self, AHJPermitIssueMethodUse)
         return super().to_representation(pimu)
 
 class AHJInspectionSerializer(serializers.Serializer):
@@ -337,9 +386,7 @@ class AHJInspectionSerializer(serializers.Serializer):
         that are not meant for public api users.
         """
         if self.context.get('is_public_view', False):
-            for field in AHJInspection.SERIALIZER_EXCLUDED_FIELDS:
-                if field in self.fields:
-                    self.fields.pop(field)
+            filter_excluded_fields(self, AHJInspection)
         return super().to_representation(inspection)
 
 
@@ -363,9 +410,7 @@ class EngineeringReviewRequirementSerializer(serializers.Serializer):
         that are not meant for public api users.
         """
         if self.context.get('is_public_view', False):
-            for field in EngineeringReviewRequirement.SERIALIZER_EXCLUDED_FIELDS:
-                if field in self.fields:
-                    self.fields.pop(field)
+            filter_excluded_fields(self, EngineeringReviewRequirement)
         return super().to_representation(err)
 
 
@@ -418,9 +463,7 @@ class AHJSerializer(serializers.Serializer):
         that are not meant for public api users.
         """
         if self.context.get('is_public_view', False):
-            for field in AHJ.SERIALIZER_EXCLUDED_FIELDS:
-                if field in self.fields:
-                    self.fields.pop(field)
+            filter_excluded_fields(self, AHJ)
         return super().to_representation(ahj)
 
     def get_Polygon(self, instance):
@@ -462,12 +505,6 @@ class EditSerializer(serializers.Serializer):
             else:
                 self.fields['ApprovedBy'] = serializers.CharField(source='ApprovedBy.Username')
         return super().to_representation(edit)
-
-    def create(self):
-        """
-        Creates an edit object without saving to database
-        """
-        return Edit(**self.validated_data)
 
 
 class WebpageTokenSerializer(serializers.Serializer):

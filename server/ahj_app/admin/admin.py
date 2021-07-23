@@ -88,7 +88,7 @@ admin.site = AHJRegistryAdminSite()
 
 def is_char_field(model_field):
     """
-    Checks if a model field is a char field.
+    Checks if a model field is a CharField.
     """
     class_name = model_field.__class__.__name__
     return class_name == 'CharField'
@@ -106,8 +106,12 @@ def get_queryset(self, request):
     """
     Overridden to filter queryset by customized url query parameters.
     These parameter key-value pairs are of the form:
-    - <field>=<value>,...<value>
-    The GET data before calling super().get_queryset so
+
+    .. code-block:: xml
+
+        <field>=<value>,...,<value> (i.e. 'UserID=1,2,3')
+
+    These parameter pairs are removed from the GET data before calling ``super().get_queryset`` so
     that the queryset it returns is not filtered.
     """
     field_names = {field.name for field in self.model._meta.fields}
@@ -129,12 +133,15 @@ def get_queryset(self, request):
 def get_default_model_admin_class(model, geo=False):
     """
     For a given model, returns a default admin model with:
-    - A search bar that searches all CharField fields of the model.
-    - A table to display the primary key and all CharField fields of the model.
-    - Turned-off dropdown selection of related models in the model detail view.
-    - CSV export admin action
-    - Customized get_queryset method to support multiple values to URL parameter keys.
-    If geo=True, then creates a OSMGeoAdmin for a nicer view of the GIS features.
+        - A search bar that searches all CharField fields of the model.
+        - A table to display the primary key and all CharField fields of the model.
+        - Turned-off dropdown selection of related models in the model detail view.
+        - CSV export admin action.
+        - Customized `get_queryset`_ method to support multiple values to URL parameter keys.
+
+    .. _get_queryset: https://docs.djangoproject.com/en/3.2/ref/contrib/admin/#django.contrib.admin.ModelAdmin.get_queryset
+
+    If **geo** = ``True``, then creates a OSMGeoAdmin for a nicer view of the GIS features.
     """
     model_fields = [field for field in model._meta.fields]
     if geo:
@@ -176,7 +183,8 @@ def create_admin_get_attr_function(name, dotted_path, admin_order_field, short_d
 
 def get_attr_info_dict(name, dotted_path, admin_order_field, short_description):
     """
-    Returns a dict with keys named, dotted_path, admin_order_field, and short_description.
+    Returns a dict with keys ``name, dotted_path, admin_order_field, short_description``
+    whose values are the corresponding parameters.
     """
     return {
         'name': name,
@@ -211,39 +219,49 @@ for model in apps.all_models['ahj_app'].values():
     }
 
 
-"""
-Customizing APIToken Admin Model:
-Added to list_display:
- - The user's email.
- - The user's company affiliation.
- - If the user is an AHJ Official of any AHJ.
-"""
 api_token_admin_model = model_admin_dict['APIToken']['admin_model']
+"""
+APIToken Admin Model
+
+Adding admin actions:
+    - Export CSV
+
+Added to list_display:
+    - The user's email.
+    - The user's company affiliation.
+    - If the user is an AHJ Official of any AHJ.
+"""
 admin_attrs_to_add = []
-admin_attrs_to_add.append(get_attr_info_dict('get_user_email', 'user.Email', 'email', 'Email'))
-admin_attrs_to_add.append(get_attr_info_dict('get_user_company_affiliation', 'user.CompanyAffiliation', 'company_affiliation', 'Company Affiliation'))
-admin_attrs_to_add.append(get_attr_info_dict('get_user_is_ahj_official', 'user.is_ahj_official', 'ahj_official', 'Is AHJ Official'))
+admin_attrs_to_add.append(get_attr_info_dict(name='user__Email', dotted_path='user.Email',
+                                             admin_order_field='user__Email', short_description='Email'))
+admin_attrs_to_add.append(get_attr_info_dict(name='user__CompanyAffiliation', dotted_path='user.CompanyAffiliation',
+                                             admin_order_field='user__CompanyAffiliation', short_description='Company Affiliation'))
+admin_attrs_to_add.append(get_attr_info_dict(name='user__ahjusermaintains__MaintainerStatus', dotted_path='user.is_ahj_official',
+                                             admin_order_field='user__ahjusermaintains__MaintainerStatus', short_description='Is AHJ Official'))
 for attr in admin_attrs_to_add:
     setattr(api_token_admin_model, attr['name'],
             create_admin_get_attr_function(attr['name'], attr['dotted_path'], attr['admin_order_field'], attr['short_description']))
     api_token_admin_model.list_display.append(attr['name'])
 
 
-"""
-Customizing User Admin Model:
-Adding Admin Actions:
- - Reset Password.
- - Generate API Token.
- - Delete/Toggle API Token.
- - Query API Tokens
- - Query Is AHJ Official Of
- - Query Submitted Edits
- - Query Approved Edits
- - Query Submitted Comments
-Removing from list_display:
- - The user's hashed password.
-"""
 user_admin_model = model_admin_dict['User']['admin_model']
+"""
+User Admin Model
+
+Adding admin actions:
+    - Export CSV
+    - Reset Password
+    - Generate API Token
+    - Delete/Toggle API Token
+    - Query API Tokens
+    - Query Is AHJ Official Of
+    - Query Submitted Edits
+    - Query Approved Edits
+    - Query Submitted Comments
+
+Removing from list_display:
+    - The user's hashed password.
+"""
 admin_actions_to_add = []
 admin_actions_to_add.append(get_action_info_dict('user_reset_password', user_reset_password))
 admin_actions_to_add.append(get_action_info_dict('user_generate_api_token', user_generate_api_token))
@@ -262,12 +280,14 @@ user_admin_model.list_display.insert(0, user_admin_model.list_display.pop(user_a
 user_admin_model.form = UserChangeForm
 
 
-"""
-Customizing AHJ Admin Model:
-Adding Admin Actions:
- - Query AHJ Official Users
-"""
 ahj_admin_model = model_admin_dict['AHJ']['admin_model']
+"""
+AHJ Admin Model
+
+Adding admin actions:
+    - Export CSV
+    - Query AHJ Official Users
+"""
 admin_actions_to_add = []
 admin_actions_to_add.append(get_action_info_dict('ahj_query_ahj_official_users', ahj_query_ahj_official_users))
 for action in admin_actions_to_add:
@@ -275,12 +295,14 @@ for action in admin_actions_to_add:
     ahj_admin_model.actions.append(action['name'])
 
 
-"""
-Customizing Comment Admin Model:
-Adding Admin Actions:
- - Query Submitting Users
-"""
 comment_admin_model = model_admin_dict['Comment']['admin_model']
+"""
+Comment Admin Model
+
+Adding admin actions:
+    - Export CSV
+    - Query Submitting Users
+"""
 admin_actions_to_add = []
 admin_actions_to_add.append(get_action_info_dict('comment_query_submitting_users', comment_query_submitting_users))
 for action in admin_actions_to_add:
@@ -289,10 +311,14 @@ for action in admin_actions_to_add:
 
 
 """
-Customizing Contact Admin Model:
+Contact Admin Model
+
+Adding admin actions:
+    - Export CSV
+
 Removing from list_display:
- - ParentTable
- - ParentID
+    - ParentTable
+    - ParentID
 """
 contact_admin_model = model_admin_dict['Contact']['admin_model']
 contact_admin_model.list_display.remove('ParentTable')
@@ -300,21 +326,29 @@ contact_admin_model.list_display.remove('ParentID')
 
 
 """
-Customizing Polygon Admin Model:
+Polygon Admin Model
+
+Adding admin actions:
+    - Export CSV
+
 Removing from list_display:
- - The Polygon MULTIPOLYGON data field.
+    - The Polygon MULTIPOLYGON data field.
 """
 polygon_admin_model = model_admin_dict['Polygon']['admin_model']
 polygon_admin_model.list_display.remove('Polygon')
 
 
 """
-Customizing Edit Admin Model:
-Adding Admin Actions:
- - Approve Edits
- - Roll back Edits
- - Query Submitting Users
- - Query Approving Users
+Edit Admin Model
+
+Adding admin actions:
+    - Export CSV
+
+Adding admin actions:
+    - Approve Edits
+    - Roll back Edits
+    - Query Submitting Users
+    - Query Approving Users
 """
 edit_admin_model = model_admin_dict['Edit']['admin_model']
 admin_actions_to_add = []
@@ -331,4 +365,4 @@ for action in admin_actions_to_add:
 Register all the admin models to admin site.
 """
 for v in model_admin_dict.values():
-    admin.site.register(v['model'],v['admin_model'])
+    admin.site.register(v['model'], v['admin_model'])

@@ -7,13 +7,17 @@ from django.conf import settings
 
 from .authentication import WebpageTokenAuth
 from .models import User, Comment, Edit
-from .utils import CommentSerializer, EditSerializer
+from .serializers import CommentSerializer, EditSerializer
 
 
 @api_view(['GET'])
 def form_validator(request):
     """
-    API call to validate the form information when a new user signs up
+    API call to validate the sign up form data on the client.
+
+    This validates that:
+        #. The chosen **Username** is not already taken.
+        #. The chosen **Email** is not already taken.
     """
     Username = request.GET.get('Username', None)
     Email = request.GET.get('Email', None)
@@ -25,7 +29,8 @@ def form_validator(request):
 @api_view(['GET'])
 def user_comments(request):
     """
-    Endpoint to get all the comments made by a specific user.
+    Endpoint to get all the comments made by a user.
+    This expects a ``UserID`` to be provided as a query parameter.
     """
     try:
         comments = Comment.objects.filter(UserID=request.query_params.get('UserID'))
@@ -39,7 +44,10 @@ def user_comments(request):
 @permission_classes([IsAuthenticated])
 def comment_submit(request):
     """
-    Endpoint to submit a new user comment.
+    Endpoint to submit a new user comment given:
+        - ``CommentText``: The text the user wrote.
+        - ``AHJPK``: The AHJ primary key of the AHJPage they commented on.
+        - ``ReplyingTo``: The UserID of the user who wrote the comment this comment is replying to, if any.
     """
     comment_text = request.data.get('CommentText', None)
     if comment_text is None:
@@ -56,7 +64,8 @@ def comment_submit(request):
 @api_view(['GET'])
 def user_edits(request):
     """
-    Endpoint returning all edits made a user specified by UserID.
+    Endpoint returning all edits made a user.
+    This expects a ``UserID`` to be provided as a query parameter.
     """
     try:
         edits = Edit.objects.filter(ChangedBy=request.query_params.get('UserID'))
@@ -69,6 +78,11 @@ def user_edits(request):
 def send_support_email(request):
     """
     Endpoint to send mail to SunSpec's support email address.
+
+    This expects as POST data:
+        - ``Email``: The email of the user writing to SunSpec support.
+        - ``Subject``: The subject of the email.
+        - ``Message``: The body of the email.
     """
     try:
         email = request.data.get('Email')

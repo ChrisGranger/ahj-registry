@@ -1,8 +1,9 @@
 from django.db import connection
 from django.urls import reverse
 from django.http import HttpRequest
-from ahj_app.models import User, Edit, Comment, APIToken
-from ahj_app.models_field_enums import *
+from ahj_app.models import AHJ, Polygon, Address, User, Edit, Comment, APIToken, StatePolygon
+from ahj_app.models_field_enums import AHJLevelCode, AHJ_LEVEL_CODE_CHOICES, BuildingCode, BUILDING_CODE_CHOICES, \
+    ElectricCode, ELECTRIC_CODE_CHOICES
 from django.utils import timezone
 
 from fixtures import *
@@ -461,9 +462,9 @@ def test_ahj_geo_location__search_array_has_ahj(list_of_ahjs, client_with_creden
 
 
 @pytest.mark.django_db
-def test_deactivate_expired_api_tokens(create_user):
-    token = APIToken.objects.create(user=create_user(),
-                                    expires=timezone.now() - datetime.timedelta(days=1),
-                                    is_active=True)
+def test_deactivate_expired_api_tokens(create_user_with_active_api_token):
+    user = create_user_with_active_api_token()
+    user.api_token.expires = timezone.now() - datetime.timedelta(days=1)
+    user.api_token.save()
     views_ahjsearch_api.deactivate_expired_api_tokens()
-    assert APIToken.objects.get(user=token.user).is_active is False
+    assert APIToken.objects.get(user=user).is_active is False

@@ -4,6 +4,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 
+from .throttles import WebpageSearchThrottle
 from .models import AHJ
 from .serializers import AHJSerializer
 from .utils import get_multipolygon, get_multipolygon_wkt, get_str_location, \
@@ -11,13 +12,21 @@ from .utils import get_multipolygon, get_multipolygon_wkt, get_str_location, \
 
 
 @api_view(['POST'])
-@throttle_classes([AnonRateThrottle])
+@throttle_classes([WebpageSearchThrottle])
 def webpage_ahj_list(request):
     """
-    Functional view for the WebPageAHJList
+    Endpoint for the client app's AHJ Search.
+
+    It is similar to to the public API endpoint documented in the API Documentation with these differences in filtering:
+        - BuildingCode instead of BuildingCodes
+        - ElectricCode instead of ElectricCodes
+        - FireCode instead of FireCodes
+        - ResidentialCode instead of ResidentialCodes
+        - WindCode instead of WindCodes
+        - Allows filtering with GeoJSON through the ``FeatureCollection`` parameter.
+
+    See the AHJSearchPageFilter.vue and store.js for more information about how this endpoint is used.
     """
-    # By default select all the AHJs
-    # filter by the latitude, longitude
     json_location = get_location_gecode_address_str(request.data.get('Address', None))
 
     polygon = get_multipolygon(request=request, location=json_location)
@@ -25,7 +34,6 @@ def webpage_ahj_list(request):
     if polygon is not None:
         polygon_wkt = get_multipolygon_wkt(multipolygon=polygon)
     str_location = get_str_location(location=json_location)
-
     ahjs = filter_ahjs(
         AHJName=request.data.get('AHJName', None),
         AHJID=request.data.get('AHJID', None),
@@ -70,7 +78,7 @@ def webpage_ahj_list(request):
 @api_view(['GET'])
 def get_single_ahj(request):
     """
-    Endpoint to get a single ahj given an AHJPK
+    Endpoint to get a single AHJ given an ``AHJPK`` query parameter.
     """
     try:
         ahj = AHJ.objects.get(AHJPK=request.query_params.get('AHJPK'))

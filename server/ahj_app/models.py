@@ -1,3 +1,18 @@
+"""
+This contains models for the Orange Button `Authority Having Jurisdiction`_ object definition.
+In addition, there are models that support user account information, crowd-source editing,
+and the Address/Location-to-AHJ search.
+
+The Polygon models represent the Census Bureau's `TIGER/Line Shapefiles`_ which are used to determine
+what jurisdictions contain an Address or Location. Documentation for these shapefiles can be found in the
+`2020 TIGER/Line Shapefile Technical Doc`_. Definitions and descriptions of the Polygon's fields can be
+found in `appendices F through R`_. The models themselves also have more information.
+
+.. _Authority Having Jurisdiction: https://obeditor.sunspec.org/?views=AuthorityHavingJurisdiction
+.. _TIGER/Line Shapefiles: https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html
+.. _2020 TIGER/Line Shapefile Technical Doc: https://www2.census.gov/geo/pdfs/maps-data/data/tiger/tgrshp2020/TGRSHP2020_TechDoc.pdf
+.. _appendices F through R: https://www2.census.gov/geo/pdfs/maps-data/data/tiger/tgrshp2020/TGRSHP2020_TechDoc_F-R.pdf
+"""
 import datetime
 
 from django.apps import apps
@@ -47,48 +62,50 @@ class AHJ(models.Model):
 
 
     def get_contacts(self):
-        return [contact for contact in Contact.objects.filter(ParentTable='AHJ', ParentID=self.AHJPK) if contact.ContactStatus is True]
+        return Contact.objects.filter(ParentTable='AHJ', ParentID=self.AHJPK, ContactStatus=True)
 
     def get_unconfirmed(self):
-        return [contact for contact in Contact.objects.filter(ParentTable='AHJ', ParentID=self.AHJPK) if contact.ContactStatus is None]
+        return Contact.objects.filter(ParentTable='AHJ', ParentID=self.AHJPK, ContactStatus=None)
 
     def get_comments(self):
-        return [comment for comment in Comment.objects.filter(AHJPK=self.AHJPK).order_by('-Date')]
+        return Comment.objects.filter(AHJPK=self.AHJPK).order_by('-Date')
 
     def get_inspections(self):
-        return [ins for ins in AHJInspection.objects.filter(AHJPK=self.AHJPK) if ins.InspectionStatus is True]
+        return AHJInspection.objects.filter(AHJPK=self.AHJPK, InspectionStatus=True)
 
     def get_unconfirmed_inspections(self):
-        return [ins for ins in AHJInspection.objects.filter(AHJPK=self.AHJPK) if ins.InspectionStatus is None]
-
+        return AHJInspection.objects.filter(AHJPK=self.AHJPK, InspectionStatus=None)
 
     def get_document_submission_methods(self):
-        return [dsm for dsm in AHJDocumentSubmissionMethodUse.objects.filter(AHJPK=self.AHJPK) if dsm.MethodStatus is True]
+        return AHJDocumentSubmissionMethodUse.objects.filter(AHJPK=self.AHJPK, MethodStatus=True)
 
     def get_uncon_dsm(self):
-        return [dsm for dsm in AHJDocumentSubmissionMethodUse.objects.filter(AHJPK=self.AHJPK) if dsm.MethodStatus is None]
+        return AHJDocumentSubmissionMethodUse.objects.filter(AHJPK=self.AHJPK, MethodStatus=None)
 
     def get_permit_submission_methods(self):
-        return [pim for pim in AHJPermitIssueMethodUse.objects.filter(AHJPK=self.AHJPK) if pim.MethodStatus is True]
+        return AHJPermitIssueMethodUse.objects.filter(AHJPK=self.AHJPK, MethodStatus=True)
 
     def get_uncon_pim(self):
-        return [pim for pim in AHJPermitIssueMethodUse.objects.filter(AHJPK=self.AHJPK) if pim.MethodStatus is None]
+        return AHJPermitIssueMethodUse.objects.filter(AHJPK=self.AHJPK, MethodStatus=None)
 
     def get_err(self):
-        return[err for err in EngineeringReviewRequirement.objects.filter(AHJPK=self.AHJPK) if err.EngineeringReviewRequirementStatus is True]
+        return EngineeringReviewRequirement.objects.filter(AHJPK=self.AHJPK, EngineeringReviewRequirementStatus=True)
 
     def get_uncon_err(self):
-        return[err for err in EngineeringReviewRequirement.objects.filter(AHJPK=self.AHJPK) if err.EngineeringReviewRequirementStatus is None]
+        return EngineeringReviewRequirement.objects.filter(AHJPK=self.AHJPK, EngineeringReviewRequirementStatus=None)
 
     def get_fee_structures(self):
-        return [fs for fs in FeeStructure.objects.filter(AHJPK=self.AHJPK) if fs.FeeStructureStatus is True]
+        return FeeStructure.objects.filter(AHJPK=self.AHJPK, FeeStructureStatus=True)
 
     def get_uncon_fs(self):
-        return [fs for fs in FeeStructure.objects.filter(AHJPK=self.AHJPK) if fs.FeeStructureStatus is None]
+        return FeeStructure.objects.filter(AHJPK=self.AHJPK, FeeStructureStatus=None)
 
     SERIALIZER_EXCLUDED_FIELDS = ['Polygon', 'AHJPK', 'Comments', 'UnconfirmedContacts', 'UnconfirmedEngineeringReviewRequirements', 'UnconfirmedDocumentSubmissionMethods', 'UnconfirmedPermitIssueMethods', 'UnconfirmedInspections', 'UnconfirmedFeeStructures']
 
 class Comment(models.Model):
+    """
+    Stores comments made by users on the AHJPage.
+    """
     CommentID = models.AutoField(db_column='CommentID', primary_key=True)
     UserID = models.ForeignKey('User', on_delete=models.DO_NOTHING, db_column='UserID')
     CommentText = models.TextField(db_column='CommentText', null=True, blank=True)
@@ -98,7 +115,7 @@ class Comment(models.Model):
     history = HistoricalRecords()
 
     def get_replies(self):
-        return [comment for comment in Comment.objects.filter(ReplyingTo=self.CommentID).order_by('-Date')]
+        return Comment.objects.filter(ReplyingTo=self.CommentID).order_by('-Date')
 
     class Meta:
         managed = True
@@ -182,11 +199,12 @@ class AHJInspection(models.Model):
     TechnicianRequired = models.BooleanField(db_column='TechnicianRequired', null=True)
     InspectionStatus = models.BooleanField(db_column='InspectionStatus', null=True)
     history = HistoricalRecords()
+
     def get_contacts(self):
-        return [contact for contact in Contact.objects.filter(ParentTable='AHJInspection', ParentID=self.InspectionID) if contact.ContactStatus is True]
+        return Contact.objects.filter(ParentTable='AHJInspection', ParentID=self.InspectionID, ContactStatus=True)
 
     def get_uncon_con(self):
-        return [contact for contact in Contact.objects.filter(ParentTable='AHJInspection', ParentID=self.InspectionID) if contact.ContactStatus is None]
+        return Contact.objects.filter(ParentTable='AHJInspection', ParentID=self.InspectionID, ContactStatus=None)
 
     def create_relation_to(self, to):
         if to.__class__.__name__ == 'AHJ':
@@ -248,9 +266,10 @@ class Edit(models.Model):
     ReviewStatus = models.CharField(db_column='ReviewStatus', max_length=1, default='P')
     OldValue = models.CharField(db_column='OldValue', max_length=255, blank=True, null=True)
     NewValue = models.CharField(db_column='NewValue', max_length=255, blank=True, null=True)
-    DateRequested = models.DateTimeField(db_column='DateRequested')
-    DateEffective = models.DateTimeField(db_column='DateEffective', blank=True, null=True)
-    #Edit type: A = addition, D = deletion, U = update
+    DateRequested = models.DateTimeField(db_column='DateRequested', db_index=True)
+    DateEffective = models.DateTimeField(db_column='DateEffective', blank=True, null=True, db_index=True)
+    IsApplied = models.BooleanField(db_column='IsApplied', default=False)
+    # Edit type: A = addition, D = deletion, U = update
     EditType = models.CharField(db_column='EditType', max_length=1, default='U')
     DataSourceComment = models.CharField(db_column='DataSourceComment', max_length=255, blank=True)
     history = HistoricalRecords()
@@ -339,6 +358,9 @@ class DocumentSubmissionMethod(models.Model):
         verbose_name_plural = 'Document Submission Methods'
 
 class AHJDocumentSubmissionMethodUse(models.Model):
+    """
+    Stores what DocumentSubmissionMethods an AHJ uses.
+    """
     UseID = models.AutoField(db_column='UseID', primary_key=True)
     AHJPK = models.ForeignKey(AHJ, models.DO_NOTHING, db_column='AHJPK')
     DocumentSubmissionMethodID = models.ForeignKey('DocumentSubmissionMethod', models.DO_NOTHING, db_column='DocumentSubmissionMethodID')
@@ -384,6 +406,9 @@ class PermitIssueMethod(models.Model):
         verbose_name_plural = 'Permit Issue Methods'
 
 class AHJPermitIssueMethodUse(models.Model):
+    """
+    Stores what PermitIssueMethods an AHJ uses.
+    """
     UseID = models.AutoField(db_column='UseID', primary_key=True)
     AHJPK = models.ForeignKey(AHJ, models.DO_NOTHING, db_column='AHJPK')
     PermitIssueMethodID = models.ForeignKey('PermitIssueMethod', models.DO_NOTHING, db_column='PermitIssueMethodID')
@@ -407,13 +432,18 @@ class AHJPermitIssueMethodUse(models.Model):
 
 class Polygon(models.Model):
     PolygonID = models.AutoField(db_column='PolygonID', primary_key=True)
-    Name = models.CharField(db_column='Name', max_length=100)
-    GEOID = models.CharField(db_column='GEOID', max_length=10)
-    Polygon = models.MultiPolygonField(db_column='Polygon')
-    LandArea = models.BigIntegerField(db_column='LandArea')
-    WaterArea = models.BigIntegerField(db_column='WaterArea')
-    InternalPLatitude = models.DecimalField(db_column='InternalPLatitude', max_digits=10, decimal_places=8)
-    InternalPLongitude = models.DecimalField(db_column='InternalPLongitude', max_digits=11, decimal_places=8)
+    Name = models.CharField(db_column='Name', max_length=100,
+                            help_text="""Name of the jurisdiction the polygon represents. Census name: NAME.""")
+    GEOID = models.CharField(db_column='GEOID', max_length=10,
+                             help_text="""Geographic identifier for County, City, CountySubdivision, and State. """
+                                       """``max_length=10`` to accommodate all different lengths of GEOID. Census name: GEOID.""")
+    Polygon = models.MultiPolygonField(db_column='Polygon', help_text="""MySQL MultiPolygon of the jurisdiction. Census name: MULTIPOLYGON.""")
+    LandArea = models.BigIntegerField(db_column='LandArea', help_text="""Land area of the jurisdiction. Census name: ALAND.""")
+    WaterArea = models.BigIntegerField(db_column='WaterArea', help_text="""Water area of the jurisdiction. Census name: AWATER.""")
+    InternalPLatitude = models.DecimalField(db_column='InternalPLatitude', max_digits=10, decimal_places=8,
+                                            help_text="""Latitude of a coordinate within the area of the Polygon. Census name: INTPLAT.""")
+    InternalPLongitude = models.DecimalField(db_column='InternalPLongitude', max_digits=11, decimal_places=8,
+                                             help_text="""Longitude of a coordinate within the area of the Polygon. Census name: INTPLON.""")
     history = HistoricalRecords()
 
     class Meta:
@@ -424,7 +454,7 @@ class Polygon(models.Model):
 
 class StatePolygon(models.Model):
     PolygonID = models.OneToOneField(Polygon, models.DO_NOTHING, db_column='PolygonID', primary_key=True)
-    FIPSCode = models.CharField(db_column='FIPSCode', max_length=2)
+    FIPSCode = models.CharField(db_column='FIPSCode', max_length=2, help_text="""State FIPS code. Census name: STATEFP.""")
     history = HistoricalRecords()
 
     class Meta:
@@ -436,7 +466,9 @@ class StatePolygon(models.Model):
 class CountyPolygon(models.Model):
     PolygonID = models.OneToOneField('Polygon', models.DO_NOTHING, db_column='PolygonID', primary_key=True)
     StatePolygonID = models.ForeignKey('StatePolygon', models.DO_NOTHING, db_column='StatePolygonID')
-    LSAreaCodeName = models.CharField(db_column='LSAreaCodeName', max_length=100)
+    LSAreaCodeName = models.CharField(db_column='LSAreaCodeName', max_length=100,
+                                      help_text="""NAMELSAD: Name concatenated with the Legal/Statistical Area Description (LSAD) Description. """
+                                                """This field is matched to the original AHJNames from NREL to pair CityPolygons to their AHJs.""")
     history = HistoricalRecords()
 
     class Meta:
@@ -448,7 +480,9 @@ class CountyPolygon(models.Model):
 class CityPolygon(models.Model):
     PolygonID = models.OneToOneField('Polygon', models.DO_NOTHING, db_column='PolygonID', primary_key=True)
     StatePolygonID = models.ForeignKey('StatePolygon', models.DO_NOTHING, db_column='StatePolygonID')
-    LSAreaCodeName = models.CharField(db_column='LSAreaCodeName', max_length=100)
+    LSAreaCodeName = models.CharField(db_column='LSAreaCodeName', max_length=100,
+                                      help_text="""Name concatenated with the Legal/Statistical Area Description (LSAD) Description. Census name: NAMELSAD. """
+                                                """This field is matched to the original AHJNames from NREL to pair CityPolygons to their AHJs.""")
     history = HistoricalRecords()
 
     class Meta:
@@ -460,7 +494,9 @@ class CityPolygon(models.Model):
 class CountySubdivisionPolygon(models.Model):
     PolygonID = models.OneToOneField('Polygon', models.DO_NOTHING, db_column='PolygonID', primary_key=True)
     StatePolygonID = models.ForeignKey('StatePolygon', models.DO_NOTHING, db_column='StatePolygonID')
-    LSAreaCodeName = models.CharField(db_column='LSAreaCodeName', max_length=100)
+    LSAreaCodeName = models.CharField(db_column='LSAreaCodeName', max_length=100,
+                                      help_text="""Name concatenated with the Legal/Statistical Area Description (LSAD) Description. Census name: NAMELSAD. """
+                                                """This field is matched to the original AHJNames from NREL to pair CityPolygons to their AHJs.""")
     history = HistoricalRecords()
 
     class Meta:
@@ -468,6 +504,20 @@ class CountySubdivisionPolygon(models.Model):
         db_table = 'CountySubdivisionPolygon'
         verbose_name = 'County Subdivision Polygon'
         verbose_name_plural = 'County Subdivision Polygons'
+
+class SunspecAllianceMember(models.Model):
+    MemberID = models.AutoField(db_column='MemberID', primary_key=True)
+    MemberName = models.CharField(db_column='MemberName', max_length=254, unique=True)
+
+class SunspecAllianceMemberDomain(models.Model):
+    DomainID = models.AutoField(db_column='DomainID', primary_key=True)
+    MemberID = models.ForeignKey(SunspecAllianceMember, models.DO_NOTHING, db_column='MemberID')
+    Domain = models.CharField(max_length=254, db_column='Domain')
+
+class AHJOfficeDomain(models.Model):
+    DomainID = models.AutoField(db_column='DomainID', primary_key=True)
+    AHJID = models.ForeignKey(AHJ, models.DO_NOTHING, db_column='AHJID')
+    Domain = models.CharField(max_length=254, db_column='Domain')
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -485,6 +535,7 @@ class UserManager(BaseUserManager):
         user = self.model(**user_dict)
         user.set_password(password)
         user.save(using=self._db)
+        APIToken.objects.create(user=user, is_active=False)
         return user
 
     def create_superuser(self, **extra_fields):
@@ -502,6 +553,7 @@ class User(AbstractBaseUser):
     Username = models.CharField(db_column='Username', unique=True, max_length=254)
     password = models.CharField(max_length=128)
     Email = models.CharField(db_column='Email', unique=True, max_length=254)
+    MemberID = models.ForeignKey(SunspecAllianceMember, models.DO_NOTHING, db_column='MemberID', null=True)
     is_staff = models.BooleanField(db_column='IsStaff', default=False)
     is_active = models.BooleanField(db_column='IsActive', default=False)
     is_superuser = models.BooleanField(db_column='IsSuperuser', default=False)
@@ -530,16 +582,13 @@ class User(AbstractBaseUser):
         return "Email"
 
     def get_maintained_ahjs(self):
-        return [ahjpk.AHJPK.AHJPK for ahjpk in AHJUserMaintains.objects.filter(UserID=self).filter(MaintainerStatus=True)]
+        return AHJUserMaintains.objects.filter(UserID=self, MaintainerStatus=True).values_list('AHJPK__AHJPK')
 
     def is_ahj_official(self):
-        return len(self.get_maintained_ahjs()) > 0
+        return self.get_maintained_ahjs().count() > 0
 
     def get_API_token(self):
-        api_token = APIToken.objects.filter(user=self).first()
-        if api_token is None:
-            return ''
-        return api_token.key
+        return APIToken.objects.filter(user=self).first()
 
     class Meta:
         db_table = 'User'
@@ -548,6 +597,9 @@ class User(AbstractBaseUser):
         managed = True
 
 class AHJUserMaintains(models.Model):
+    """
+    Stores what AHJs a user is an AHJ official of.
+    """
     MaintainerID = models.AutoField(db_column='MaintainerID', primary_key=True)
     AHJPK = models.ForeignKey(AHJ, models.DO_NOTHING, db_column='AHJPK')
     UserID = models.ForeignKey(User, models.DO_NOTHING, db_column='UserID')
@@ -562,6 +614,12 @@ class AHJUserMaintains(models.Model):
         unique_together = (('AHJPK', 'UserID'),)
 
 class WebpageToken(rest_framework.authtoken.models.Token):
+    """
+    A token controlled by the Django library `Djoser`_.
+    This token is generated when a user logs into the AHJ Registry client app, and is deleted when they log out.
+
+    .. _Djoser: https://djoser.readthedocs.io/en/latest/getting_started.html
+    """
     key = models.CharField(max_length=40, primary_key=True, serialize=False, verbose_name='Key')
     created = models.DateTimeField(auto_now_add=True, verbose_name='Created')
     user = models.OneToOneField(on_delete=models.CASCADE, related_name='webpage_token', to=settings.AUTH_USER_MODEL, verbose_name='User')
@@ -592,15 +650,23 @@ class APIToken(rest_framework.authtoken.models.Token):
         return f'APIToken({self.key})'
 
 class StateTemp(models.Model):
-    GEOID = models.CharField(max_length=2)
-    NAME = models.CharField(max_length=100)
-    ALAND = models.BigIntegerField()
-    AWATER = models.BigIntegerField()
-    INTPTLAT = models.CharField(max_length=11)
-    INTPTLON = models.CharField(max_length=12)
+    """
+    Used by usf.py to help upload shapefiles into the database.
+    This temporarily stores state shapefile data to next be copied into the Polygon and StatePolygon tables.
+    """
+    GEOID = models.CharField(max_length=2,
+                             help_text="""Geographic identifier for County, City, CountySubdivision, and State.""")
+    NAME = models.CharField(max_length=100,
+                            help_text="""Name of the jurisdiction the polygon represents.""")
+    ALAND = models.BigIntegerField(help_text="""Land area of the jurisdiction.""")
+    AWATER = models.BigIntegerField(help_text="""Water area of the jurisdiction.""")
+    INTPTLAT = models.CharField(max_length=11,
+                                help_text="""Latitude of a coordinate within the area of the Polygon.""")
+    INTPTLON = models.CharField(max_length=12,
+                                help_text="""Longitude of a coordinate within the area of the Polygon.""")
     history = HistoricalRecords()
 
-    mpoly = models.MultiPolygonField()
+    mpoly = models.MultiPolygonField(help_text="""MySQL MultiPolygon of the jurisdiction.""")
 
     def __str__(self):
         return self.NAME
@@ -611,17 +677,26 @@ class StateTemp(models.Model):
 
 # Census county shapefile model
 class CountyTemp(models.Model):
-    STATEFP = models.CharField(max_length=2)
-    GEOID = models.CharField(max_length=5)
-    NAME = models.CharField(max_length=100)
-    NAMELSAD = models.CharField(max_length=100)
-    ALAND = models.BigIntegerField()
-    AWATER = models.BigIntegerField()
-    INTPTLAT = models.CharField(max_length=11)
-    INTPTLON = models.CharField(max_length=12)
+    """
+    Used by usf.py to help upload shapefiles into the database.
+    This temporarily stores county shapefile data to next be copied into the Polygon and CountyPolygon tables.
+    """
+    STATEFP = models.CharField(max_length=2, help_text="""State FIPS code.""")
+    GEOID = models.CharField(max_length=5,
+                             help_text="""Geographic identifier for County, City, CountySubdivision, and State.""")
+    NAME = models.CharField(max_length=100,
+                            help_text="""Name of the jurisdiction the polygon represents.""")
+    NAMELSAD = models.CharField(max_length=100,
+                                help_text="""Name concatenated with the Legal/Statistical Area Description (LSAD) Description.""")
+    ALAND = models.BigIntegerField(help_text="""Land area of the jurisdiction.""")
+    AWATER = models.BigIntegerField(help_text="""Water area of the jurisdiction.""")
+    INTPTLAT = models.CharField(max_length=11,
+                                help_text="""Latitude of a coordinate within the area of the Polygon.""")
+    INTPTLON = models.CharField(max_length=12,
+                                help_text="""Longitude of a coordinate within the area of the Polygon.""")
     history = HistoricalRecords()
 
-    mpoly = models.MultiPolygonField()
+    mpoly = models.MultiPolygonField(help_text="""MySQL MultiPolygon of the jurisdiction.""")
 
     def __str__(self):
         return self.NAMELSAD
@@ -632,17 +707,26 @@ class CountyTemp(models.Model):
 
 # Census cousub shapefile model
 class CousubTemp(models.Model):
-    STATEFP = models.CharField(max_length=2)
-    GEOID = models.CharField(max_length=10)
-    NAME = models.CharField(max_length=100)
-    NAMELSAD = models.CharField(max_length=100)
-    ALAND = models.BigIntegerField()
-    AWATER = models.BigIntegerField()
-    INTPTLAT = models.CharField(max_length=11)
-    INTPTLON = models.CharField(max_length=12)
+    """
+    Used by usf.py to help upload shapefiles into the database.
+    This temporarily stores county subdivision shapefile data to next be copied into the Polygon and CountySubdivisionPolygon tables.
+    """
+    STATEFP = models.CharField(max_length=2, help_text="""State FIPS code.""")
+    GEOID = models.CharField(max_length=10,
+                             help_text="""Geographic identifier for County, City, CountySubdivision, and State.""")
+    NAME = models.CharField(max_length=100,
+                            help_text="""Name of the jurisdiction the polygon represents.""")
+    NAMELSAD = models.CharField(max_length=100,
+                                help_text="""Name concatenated with the Legal/Statistical Area Description (LSAD) Description.""")
+    ALAND = models.BigIntegerField(help_text="""Land area of the jurisdiction.""")
+    AWATER = models.BigIntegerField(help_text="""Water area of the jurisdiction.""")
+    INTPTLAT = models.CharField(max_length=11,
+                                help_text="""Latitude of a coordinate within the area of the Polygon.""")
+    INTPTLON = models.CharField(max_length=12,
+                                help_text="""Longitude of a coordinate within the area of the Polygon.""")
     history = HistoricalRecords()
 
-    mpoly = models.MultiPolygonField()
+    mpoly = models.MultiPolygonField(help_text="""MySQL MultiPolygon of the jurisdiction.""")
 
     def __str__(self):
         return self.NAMELSAD
@@ -653,17 +737,26 @@ class CousubTemp(models.Model):
 
 # Census place shapefile model
 class CityTemp(models.Model):
-    STATEFP = models.CharField(max_length=2)
-    GEOID = models.CharField(max_length=7)
-    NAME = models.CharField(max_length=100)
-    NAMELSAD = models.CharField(max_length=100)
-    ALAND = models.BigIntegerField()
-    AWATER = models.BigIntegerField()
-    INTPTLAT = models.CharField(max_length=11)
-    INTPTLON = models.CharField(max_length=12)
+    """
+    Used by usf.py to help upload shapefiles into the database.
+    This temporarily stores city shapefile data to next be copied into the Polygon and CityPolygon tables.
+    """
+    STATEFP = models.CharField(max_length=2, help_text="""State FIPS code.""")
+    GEOID = models.CharField(max_length=7,
+                             help_text="""Geographic identifier for County, City, CountySubdivision, and State.""")
+    NAME = models.CharField(max_length=100,
+                            help_text="""Name of the jurisdiction the polygon represents.""")
+    NAMELSAD = models.CharField(max_length=100,
+                                help_text="""Name concatenated with the Legal/Statistical Area Description (LSAD) Description.""")
+    ALAND = models.BigIntegerField(help_text="""Land area of the jurisdiction.""")
+    AWATER = models.BigIntegerField(help_text="""Water area of the jurisdiction.""")
+    INTPTLAT = models.CharField(max_length=11,
+                                help_text="""Latitude of a coordinate within the area of the Polygon.""")
+    INTPTLON = models.CharField(max_length=12,
+                                help_text="""Longitude of a coordinate within the area of the Polygon.""")
     history = HistoricalRecords()
 
-    mpoly = models.MultiPolygonField()
+    mpoly = models.MultiPolygonField(help_text="""MySQL MultiPolygon of the jurisdiction.""")
 
     def __str__(self):
         return self.NAMELSAD
@@ -673,6 +766,12 @@ class CityTemp(models.Model):
         verbose_name_plural = 'Temporary City Polygons'
 
 class AHJCensusName(models.Model):
+    """
+    Stores the names and states of AHJ jurisdictions provided by National Renewable Energy Laboratory (NREL).
+    This list can be found on the `Orange Button Google Drive`_ in the AHJ Registry/AHJ Data Uploads/NREL directory.
+
+    .. _Orange Button Google Drive: https://drive.google.com/drive/u/1/folders/12vSNzJmEnTzVMArF5ADVzmLX93SlkpFs
+    """
     AHJPK = models.OneToOneField('AHJ', on_delete=models.DO_NOTHING, db_column='AHJPK', primary_key=True)
     AHJCensusName = models.CharField(db_column='AHJCensusName', max_length=100)
     StateProvince = models.CharField(db_column='StateProvince', max_length=2)
