@@ -301,7 +301,16 @@ def reset_edit(user, edit, force_resettable=False, skip_undo=False):
 
 
 ####################
-
+@api_view(['POST'])
+@authentication_classes([WebpageTokenAuth])
+@permission_classes([IsAuthenticated])
+def undo(request):
+    edit = Edit.objects.get(EditID=request.data['EditID'])
+    undone = reset_edit(request.user,edit)
+    if undone:
+        return Response('Done!', status=status.HTTP_200_OK)
+    else:
+        return Response('Edit could not be undone', status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 @authentication_classes([WebpageTokenAuth])
@@ -328,6 +337,7 @@ def edit_review(request):
         if not edit.DateEffective or edit.DateEffective < tomorrow:
             edit.DateEffective = tomorrow
         edit.save()  # commit changes
+        print("Hello!")
         return Response('Success!', status=status.HTTP_200_OK)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)

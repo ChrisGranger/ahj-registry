@@ -185,6 +185,10 @@ state: {
           searchPayload['use_public_view'] = true;
           gatherAllObjects(url, headers, searchPayload, [], 0);
         },
+        exportInfoToJSON(state,obj){
+            state.resultsDownloading = false;
+            FileSaver.saveAs(new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }), 'AHJ_' + obj.AHJPK.Value.toString() + '.json');
+        },
         changeAuthToken(state, authToken) {
             state.authToken = authToken;
         },

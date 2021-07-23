@@ -30,8 +30,6 @@
                 </template>
             </b-table>
         </div>
-        <b-button id="get-token-button" class="button" @click="displayAPIToken" block pill variant="primary">Get Current API Token</b-button>
-        <h4 class="api-status-text" v-if="this.showAPIToken">Your current API token: <span>{{this.getCurrentToken()}}</span></h4>
     </div>
 </template>
 

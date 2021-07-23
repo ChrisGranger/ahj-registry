@@ -29,5 +29,6 @@ urlpatterns = [
     path('auth/users/activation/',               views_users.ActivateUser.as_view({'post': 'activation'}),                        name='user-activate'),
     path('auth/users/reset_password_confirm/',   views_users.ConfirmPasswordReset.as_view({'post': 'reset_password_confirm'}),    name='confirm-reset-password'),
     path('auth/',                                include(('djoser.urls', 'djoser'), namespace='djoser')),
-    path('auth/',                                include(('djoser.urls.authtoken', 'djoser'), namespace='djoser-authtoken'))
+    path('auth/',                                include(('djoser.urls.authtoken', 'djoser'), namespace='djoser-authtoken')),
+    path('edit/undo/',                           views_edits.undo,                                        name='edit-undo')
 ]
