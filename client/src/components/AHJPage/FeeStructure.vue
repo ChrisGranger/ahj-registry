@@ -125,8 +125,8 @@ export default {
                     this.editstatus = 'P';
                     this.$refs.fs.style.backgroundColor = "white";
                 })
-                .catch((err) => {
-                    alert("Edit could not be undone, you may have edits that were applied after this one" + err)
+                .catch(() => {
+                    alert("Edit could not be undone, you may have edits that were applied after this one")
                 })
         }
     }
