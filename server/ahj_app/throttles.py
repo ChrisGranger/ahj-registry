@@ -87,6 +87,8 @@ class WebpageSearchThrottle(UserRateThrottle):
     
     def user_is_member(self, user):
         if user.is_authenticated:
-            if user.MemberID or user.get_API_token(): # Allows access if member OR if they have an API token
+            api_token = user.get_API_token()
+            has_active_api_token = api_token.is_active if api_token is not None else False
+            if user.MemberID or has_active_api_token:  # Allows access if member OR if they have an API token
                 return True                         
         return False                                

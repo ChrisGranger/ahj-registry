@@ -1,9 +1,12 @@
-const API_ENDPOINT = "http://localhost:8000/api/v1/";
+const API_DOMAIN = "http://localhost:8000/"
+const API_ENDPOINT = `${API_DOMAIN}api/v1/`;
+const DOCS_ENDPOINT = `${API_DOMAIN}docs/`
 const SUPPORT_EMAIL = "support@sunspec.org";
 const MEMBERSHIP_EMAIL = "membership@sunspec.org";
 
 export default {
   API_ENDPOINT: API_ENDPOINT,
+  DOCS_ENDPOINT: DOCS_ENDPOINT,
   SUPPORT_EMAIL: SUPPORT_EMAIL,
   MEMBERSHIP_EMAIL: MEMBERSHIP_EMAIL,
   AHJ_FIELDS: {
