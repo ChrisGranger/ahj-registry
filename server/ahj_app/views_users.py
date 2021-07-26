@@ -136,16 +136,13 @@ def user_update(request):
 
 @api_view(['GET'])
 @authentication_classes([WebpageTokenAuth])
-@permission_classes([IsAuthenticated, IsSuperuser])
-def create_api_token(request):
-    """
-    Endpoint for Superusers to generate their API token.
-    """
+@permission_classes([IsAuthenticated])
+def create_api_token(request): 
     try:
         user = request.user
         with transaction.atomic():
             APIToken.objects.filter(user=user).delete()
-            api_token = APIToken.objects.create(user=user)
+            api_token = APIToken.objects.create(user=user, is_active=False)
         return Response({'auth_token': api_token.key}, status=status.HTTP_201_CREATED)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)

@@ -813,6 +813,7 @@
                                 <h2 :ref="`DSM-a-${err.UseID}`" v-bind:style="{backgroundColor: e.ReviewStatus==='A' ? '#B7FFB3' : e.ReviewStatus==='R' ? '#FFBEBE' : 'white'}"  class="pmdsm"> {{err.Value}} </h2>
                                 <i style="margin-right:10px" v-if="isManaged && e.ReviewStatus==='P'" v-on:click="handleOfficial({Type:'Accept',eID:e.EditID});e.ReviewStatus = 'A';changeStatus(`DSM-a-${err.UseID}`,'A');" class="fa fa-check"></i>
                                 <i v-if="isManaged && e.ReviewStatus==='P'" v-on:click="handleOfficial({Type:'Reject',eID:e.EditID});e.ReviewStatus='R';changeStatus(`DSM-a-${err.UseID}`,'R');" class="fa fa-thumbs-down"></i>
+                                <i v-if="isManaged && e.ReviewStatus!=='P'" v-on:click="undoStatusChange(e.EditID,`DSM-a-${err.UseID}`) ? e.ReviewStatus = 'P' : null" class="fas fa-undo"></i>
                                 </div>
                             </div>
                             </div>
@@ -829,6 +830,7 @@
                                 <h2 :ref="`DSM-a-${err.UseID}`" v-bind:style="{backgroundColor: e.ReviewStatus==='A' ? '#B7FFB3' : e.ReviewStatus==='R' ? '#FFBEBE' : 'white'}"  class="pmdsm"> {{err.Value}} </h2>
                                 <i style="margin-right:10px" v-if="isManaged && e.ReviewStatus==='P'" v-on:click="handleOfficial({Type:'Accept',eID:e.EditID});e.ReviewStatus = 'A';changeStatus(`DSM-a-${err.UseID}`,'A');" class="fa fa-check"></i>
                                 <i v-if="isManaged && e.ReviewStatus==='P'" v-on:click="handleOfficial({Type:'Reject',eID:e.EditID});e.ReviewStatus='R';changeStatus(`DSM-a-${err.UseID}`,'R');" class="fa fa-thumbs-down"></i>
+                                <i v-if="isManaged && e.ReviewStatus!=='P'" v-on:click="undoStatusChange(e.EditID,`DSM-a-${err.UseID}`) ? e.ReviewStatus = 'P' : null" class="fas fa-undo"></i>
                                 </div>
                             </div>
                             </div>
@@ -921,6 +923,7 @@
                                 <h2 :ref="`PIM-e-${err.UseID}`" v-bind:style="{backgroundColor: e.ReviewStatus==='A' ? '#B7FFB3' : e.ReviewStatus==='R' ? '#FFBEBE' : 'white'}"  class="pmdsm"> {{err.Value}} </h2>
                                 <i style="margin-right:10px" v-if="isManaged && e.ReviewStatus==='P'" v-on:click="handleOfficial({Type:'Accept',eID:e.EditID});e.ReviewStatus = 'A';changeStatus(`PIM-e-${err.UseID}`,'A');" class="fa fa-check"></i>
                                 <i v-if="isManaged && e.ReviewStatus==='P'" v-on:click="handleOfficial({Type:'Reject',eID:e.EditID});e.ReviewStatus='R';changeStatus(`PIM-e-${err.UseID}`,'R');" class="fa fa-thumbs-down"></i>
+                                <i v-if="$parent.isManaged && e.ReviewStatus!=='P'" v-on:click="undoStatusChange(e.EditID,`PIM-e-${err.UseID}`) ? e.ReviewStatus = 'P' : null" class="fas fa-undo"></i>
                                 </div>
                             </div>
                             </div>
@@ -937,6 +940,7 @@
                                 <h2 :ref="`PIM-e-${err.UseID}`" v-bind:style="{backgroundColor: e.ReviewStatus==='A' ? '#B7FFB3' : e.ReviewStatus==='R' ? '#FFBEBE' : 'white'}"  class="pmdsm"> {{err.Value}} </h2>
                                 <i style="margin-right:10px" v-if="isManaged && e.ReviewStatus==='P'" v-on:click="handleOfficial({Type:'Accept',eID:e.EditID});e.ReviewStatus = 'A';changeStatus(`PIM-e-${err.UseID}`,'A');" class="fa fa-check"></i>
                                 <i v-if="isManaged && e.ReviewStatus==='P'" v-on:click="handleOfficial({Type:'Reject',eID:e.EditID});e.ReviewStatus='R';changeStatus(`PIM-e-${err.UseID}`,'R');" class="fa fa-thumbs-down"></i>
+                                <i v-if="$parent.isManaged && e.ReviewStatus!=='P'" v-on:click="undoStatusChange(e.EditID,`PIM-e-${err.UseID}`) ? e.ReviewStatus = 'P' : null" class="fas fa-undo"></i>
                                 </div>
                             </div>
                             </div>
@@ -1016,6 +1020,7 @@
                     <a v-else style="margin:0;padding:0;text-decoration: underline; margin-right:10px; cursor:pointer;" v-on:click="showBigDiv('confirm-edits'); createEditObjects();">Submit Edits</a>
                     <!-- Cancel user made edits without submitting -->
                     <a v-if="isEditing" style="margin:0;padding:0;text-decoration: underline; cursor:pointer;" v-on:click="isEditing = false;">Cancel</a>
+                    <a v-if="AHJInfo !== null" style="margin:0;padding:0;margin-left:10px;text-decoration: underline; cursor:pointer;" v-on:click="downloadAHJInfo()">Download Info</a>
                 </div>
             </div>
         </div>
@@ -2490,6 +2495,44 @@ export default {
             else{
                 this.$refs.titleInfo.style.height = "275px";
             }
+        },
+        downloadAHJInfo(){
+            let info = {...this.AHJInfo};
+            let keys = Object.keys(info);
+            for(var i = 0; i < keys.length; i++){
+                if(keys[i].startsWith('Unconfirmed')){
+                    delete info[keys[i]];
+                }
+            }
+            for(i = 0; i < info.AHJInspections.length;i++){
+                keys = Object.keys(info.AHJInspections[i]);
+                for(var j = 0; j < keys.length; j++){
+                    if(keys[j].startsWith('Unconfirmed')){
+                        delete info.AHJInspections[i][keys[j]];
+                    }
+                }
+            }
+            delete info.Comments;
+            this.$store.commit('exportInfoToJSON',info);
+        },
+        undoStatusChange(EditID,ref){
+            let url = constants.API_ENDPOINT + 'edit/undo/'
+            axios
+                .post(url,{ EditID: EditID }, {
+                    headers: {
+                        Authorization: this.$store.getters.authToken
+                    }
+                })
+                .then(() => {
+                    this.$refs[ref][0].style.backgroundColor = "white";
+                    return true;
+                })
+                .catch((err) => {
+                    console.log(err)
+                    alert("Edit could not be undone, you may have edits that were applied after this one");
+                    return false;
+                })
+            return true;
         }
     },
     watch: {

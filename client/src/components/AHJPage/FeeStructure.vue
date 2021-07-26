@@ -8,6 +8,7 @@
             <div style="width: 50px;margin-right:10px;" v-if="eID >= 0">
                 <i style="margin-right:10px;margin-top:10px;" v-if="$parent.isManaged && this.editstatus==='P'" v-on:click="$emit('official',{Type:'Accept',eID: eID});editstatus = 'A';changeStatus();" class="fa fa-check"></i>
                 <i style="margin-right:5px;" v-if="$parent.isManaged && this.editstatus==='P'" v-on:click="$emit('official',{Type:'Reject',eID: eID});editstatus='R';changeStatus();" class="fa fa-times"></i>
+                <i v-if="$parent.isManaged && this.editstatus!=='P'" v-on:click="undoStatusChange()" class="fas fa-undo"></i>
             </div>
             <i ref='chev' style="height:100%;margin-right: 10px;margin-top:10px;" class="fa fa-chevron-down" v-on:click="showInfo()"></i>
             <div style="float: right;" v-if="isEditing">
@@ -30,6 +31,7 @@
 
 <script>
 import constants from '../../constants.js';
+import axios from 'axios';
 
 export default {
     props: {
@@ -96,10 +98,10 @@ export default {
         changeStatus(){
             //change rejection / acceptance status if this is an edit
             if(this.eID >= 0){
-                if(this.editStatus === 'A'){
+                if(this.editstatus === 'A'){
                     this.$refs.fs.style.backgroundColor = "#B7FFB3";
                 }
-                if(this.editStatus === 'R'){
+                if(this.editstatus === 'R'){
                     this.$refs.fs.style.backgroundColor = "#FFBEBE";
                 }
             
@@ -111,6 +113,22 @@ export default {
             this.$refs.chev.classList.toggle('fa-chevron-down');
             this.$refs.chev.classList.toggle('fa-chevron-up');
         },
+        undoStatusChange(){
+            let url = constants.API_ENDPOINT + 'edit/undo/'
+            axios
+                .post(url,{ EditID: this.eID }, {
+                    headers: {
+                        Authorization: this.$store.getters.authToken
+                    }
+                })
+                .then(() => {
+                    this.editstatus = 'P';
+                    this.$refs.fs.style.backgroundColor = "white";
+                })
+                .catch(() => {
+                    alert("Edit could not be undone, you may have edits that were applied after this one")
+                })
+        }
     }
 }
 </script>

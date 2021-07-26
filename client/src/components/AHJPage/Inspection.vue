@@ -9,6 +9,7 @@
             <div style="width: 50px;margin-right:10px;" v-if="eID >= 0">
                 <i style="margin-right:10px;margin-top:10px;" v-if="$parent.isManaged && this.editstatus==='P'" v-on:click="$emit('official',{Type:'Accept',eID: eID});editstatus = 'A';changeStatus();" class="fa fa-check"></i>
                 <i style="margin-right:5px;" v-if="$parent.isManaged && this.editstatus==='P'" v-on:click="$emit('official',{Type:'Reject',eID: eID});editstatus='R';changeStatus();" class="fa fa-times"></i>
+                <i v-if="$parent.isManaged && this.data.ReviewStatus!=='P'" v-on:click="undoStatusChange()" class="fas fa-undo"></i>
             </div>
             <i ref='chev' style="height:100%;margin-right: 10px;margin-top:10px;" class="fa fa-chevron-down" v-on:click="showInfo()"></i>
             <div style="float: right;" v-if="isEditing">
@@ -227,6 +228,22 @@ export default {
             this.$refs.chev.classList.toggle('fa-chevron-down');
             this.$refs.chev.classList.toggle('fa-chevron-up');
         },
+        undoStatusChange(){
+            let url = constants.API_ENDPOINT + 'edit/undo/'
+            axios
+                .post(url,{ EditID: this.data.EditID }, {
+                    headers: {
+                        Authorization: this.$store.getters.authToken
+                    }
+                })
+                .then(() => {
+                    this.editstatus = 'P';
+                    this.$refs.insp.style.backgroundColor = "white";
+                })
+                .catch(() => {
+                    alert("Edit could not be undone, you may have edits that were applied after this one")
+                })
+        }
     },
     watch:{
         //if parent is editing, this object is editing
