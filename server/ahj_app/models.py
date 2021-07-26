@@ -562,9 +562,7 @@ class User(AbstractBaseUser):
     URL = models.CharField(db_column='URL', max_length=255, blank=True, null=True)
     CompanyAffiliation = models.CharField(db_column='CompanyAffiliation', max_length=255, blank=True)
     Photo = models.CharField(db_column='Photo', max_length=255, blank=True, null=True)
-    AcceptedEdits = models.IntegerField(db_column='NumAcceptedEdits', default=0)
-    SubmittedEdits = models.IntegerField(db_column='NumSubmittedEdits', default=0)
-    CommunityScore = models.IntegerField(db_column='CommunityScore', default=0)
+    NumAPICalls = models.IntegerField(db_column='NumAPICalls', default=0)
     SecurityLevel = models.IntegerField(db_column='SecurityLevel', default=3)
     history = HistoricalRecords()
 
@@ -580,6 +578,12 @@ class User(AbstractBaseUser):
 
     def get_email_field_name(self=None):
         return "Email"
+    
+    def get_num_submitted_edits(self):
+        return Edit.objects.filter(ChangedBy=self).count()
+    
+    def get_num_accepted_edits(self):
+        return Edit.objects.filter(ChangedBy=self).filter(ReviewStatus='A').count()
 
     def get_maintained_ahjs(self):
         return AHJUserMaintains.objects.filter(UserID=self, MaintainerStatus=True).values_list('AHJPK__AHJPK')

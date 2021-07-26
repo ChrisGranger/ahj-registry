@@ -392,6 +392,9 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
+def update_user_api_call_num(user):
+    user.NumAPICalls += 1
+    user.save()
 
 def filter_dict_keys(dict_to_filter, keys_to_keep):
     return {k: v for k, v in dict_to_filter.items() if k in keys_to_keep}

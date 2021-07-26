@@ -465,6 +465,30 @@ def test_user_get_email_field_name(create_user):
     assert user.get_email_field_name() == 'Email' 
 
 @pytest.mark.django_db
+def test_user_get_submitted_edits(create_user):
+    user1 = create_user(Email='a@a.com')
+    user2 = create_user(Email='b@b.com')
+    assert user1.get_num_submitted_edits() == 0
+
+    Edit.objects.create(SourceRow=1, SourceTable='AHJ', SourceColumn='BuildingCode', ChangedBy=user1, DateRequested='2021-05-27')
+    Edit.objects.create(SourceRow=2, SourceTable='AHJ', SourceColumn='ElectricCode', ChangedBy=user1, DateRequested='2021-05-26')
+    Edit.objects.create(SourceRow=3, SourceTable='AHJ', SourceColumn='WindCode', ChangedBy=user2, DateRequested='2021-05-25')
+    assert user1.get_num_submitted_edits() == 2
+
+@pytest.mark.django_db
+def test_user_get_accepted_edits(create_user):
+    user1 = create_user(Email='a@a.com')
+    user2 = create_user(Email='b@b.com')
+    assert user1.get_num_accepted_edits() == 0
+
+    Edit.objects.create(SourceRow=1, SourceTable='AHJ', SourceColumn='BuildingCode', ChangedBy=user1, DateRequested='2021-05-27', ReviewStatus='A')
+    Edit.objects.create(SourceRow=2, SourceTable='AHJ', SourceColumn='ElectricCode', ChangedBy=user1, DateRequested='2021-05-26', ReviewStatus='P')
+    Edit.objects.create(SourceRow=3, SourceTable='AHJ', SourceColumn='WindCode', ChangedBy=user2, DateRequested='2021-05-25', ReviewStatus='A')
+    Edit.objects.create(SourceRow=4, SourceTable='AHJ', SourceColumn='FireCode', ChangedBy=user1, DateRequested='2021-05-29')
+    Edit.objects.create(SourceRow=5, SourceTable='AHJ', SourceColumn='ResidentialCode', ChangedBy=user1, DateRequested='2021-05-28', ReviewStatus='A')
+    assert user1.get_num_accepted_edits() == 2
+
+@pytest.mark.django_db
 def test_user_get_maintained_ahjs(create_user, two_ahjs):
     ahj1, ahj2 = two_ahjs
     user = create_user(Email='a@a.com')

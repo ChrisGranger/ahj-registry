@@ -202,6 +202,7 @@ DJOSER = {
 
     'SERIALIZERS': {
         'user_create': 'ahj_app.serializers.UserCreateSerializer',
+        'password_reset': 'ahj_app.serializers.SendEmailResetSerializer',
         'user': 'ahj_app.serializers.UserCreateSerializer',
         'token': 'ahj_app.serializers.WebpageTokenSerializer'
     },

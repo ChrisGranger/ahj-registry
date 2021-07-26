@@ -312,6 +312,12 @@ def test_filter_ahjs__search_filters_and_location(ahj_filter_ahjs, ahj_filter_lo
     assert len(ahj_list) == 1
     assert ahj_list[0].AHJPK == 3
 
+@pytest.mark.django_db
+def test_update_user_api_call_num(create_user):
+    user = create_user(Email='b@b.com')
+    assert user.NumAPICalls == 0
+    update_user_api_call_num(user)
+    assert user.NumAPICalls == 1
 
 @pytest.mark.django_db
 def test_filter_dict_keys():

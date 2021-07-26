@@ -315,6 +315,7 @@ export default {
   API_USAGE_BADGE_BOUNDARIES: [50, 200, 500],
   COMMUNITY_SCORE_BADGE_BOUNDARIES: [30, 150, 400],
   ACCEPTED_EDITS_BADGE_BOUNDARIES: [3, 8, 15],
+  COMMUNITY_SCORE_FORMULA: (numSubmittedEdits, numAcceptedEdits) => numSubmittedEdits * 2 + numAcceptedEdits * 8,
   // Message and notification text
   API_THROTTLE_MSG: `Thank you for using this service. Please consider becoming a member by contacting <a href="mailto:${MEMBERSHIP_EMAIL}">${MEMBERSHIP_EMAIL}</a> to continue searching.`
 };

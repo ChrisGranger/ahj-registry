@@ -242,10 +242,10 @@ class UserSerializer(serializers.Serializer):
     PersonalBio = serializers.CharField()
     CompanyAffiliation = serializers.CharField()
     Photo = serializers.CharField()
-    AcceptedEdits = serializers.IntegerField()
-    SubmittedEdits = serializers.IntegerField()
-    CommunityScore = serializers.IntegerField()
+    NumAPICalls = serializers.IntegerField()
     SignUpDate = serializers.DateField()
+    AcceptedEdits = serializers.IntegerField(source='get_num_accepted_edits')
+    SubmittedEdits = serializers.IntegerField(source='get_num_submitted_edits')
     MaintainedAHJs = serializers.ListField(source='get_maintained_ahjs')
     APIToken = APITokenSerializer(source='get_API_token')
     is_superuser = serializers.BooleanField()
@@ -305,8 +305,8 @@ class UserCreateSerializer(UserCreateSerializer):
                   'URL',
                   'CompanyAffiliation',
                   'Photo',
-                  'CommunityScore',
                   'SecurityLevel',
+                  'NumAPICalls',
                   'FirstName',
                   'MiddleName',
                   'LastName',
