@@ -1,90 +1,90 @@
+from django.contrib.auth.tokens import default_token_generator
 from django.urls import reverse
-from django.dispatch import receiver
-from django.conf import settings
+from djoser import utils
 from ahj_app.models import User, Contact, AHJUserMaintains, PreferredContactMethod, WebpageToken, APIToken, SunspecAllianceMember, SunspecAllianceMemberDomain, AHJOfficeDomain
 from fixtures import *
 from ahj_app.signals import *
 import pytest
-import time
 
-token = ''
-uid = ''
+
+TEST_SUNSPEC_MEMBER_DOMAIN = 'sunspec_member.org'
+TEST_AHJ_OFFICE_DOMAIN = 'ahj_office.org'
+
 
 @pytest.fixture
 def sunspec_alliance_member():
     member = SunspecAllianceMember.objects.create(MemberID=1, MemberName='Test')
-    SunspecAllianceMemberDomain.objects.create(DomainID=1, MemberID=member, Domain='test.abcd')
+    SunspecAllianceMemberDomain.objects.create(DomainID=1, MemberID=member, Domain=TEST_SUNSPEC_MEMBER_DOMAIN)
 
 @pytest.fixture
 def ahj_office_domain(ahj_obj):
-    AHJOfficeDomain.objects.create(DomainID=1, AHJID=ahj_obj, Domain='test.abcd')
+    AHJOfficeDomain.objects.create(DomainID=1, AHJID=ahj_obj, Domain=TEST_AHJ_OFFICE_DOMAIN)
 
-# waits for activation email's uid and token to be created abd assigns local token, uid variables
-@receiver(activation_email_sent)
-def user_activation_listener(sender, **kwargs):
-    global uid, token
-    uid = kwargs['uid']
-    token = kwargs['token']
 
-# creates a new user and returns the created uid and token sent in the activation email
 def get_activation_uid_and_token(client, userData):
+    """
+    Creates a new user using the Djoser create user endpoint and returns a Djoser uid and token.
+    The uid and token are part of the Djoser user account email activation link (i.e. https://domain/uid/token/).
+    This method creates uid and token the same way as Djoser (`source`_).
+
+    .. _source: https://github.com/sunscrapers/djoser/blob/b648b07dc2da7dab4c00c1c39af3d6ec53f58eb6/djoser/email.py#L16
+    """
     response = client.post('/api/v1/auth/users/', userData)
-    time.sleep(1) # wait some arbitrary time for signal receiver to get token and uid
+    user = User.objects.get(UserID=response.data['UserID'])
+    token = default_token_generator.make_token(user)
+    uid = utils.encode_uid(user.UserID)
     return token, uid
+
 
 """
     User View Endpoints
 """
+
+
+@pytest.mark.parametrize(
+    'user_email', [
+        f'user@not_a_{TEST_SUNSPEC_MEMBER_DOMAIN}',
+        f'user@{TEST_SUNSPEC_MEMBER_DOMAIN}'
+    ]
+)
 @pytest.mark.django_db
-def test_activate_user__user_is_not_member(generate_client_with_webpage_credentials, sunspec_alliance_member):
-    client = generate_client_with_webpage_credentials(Email='f@f.femdosikf')
-    token, uid = get_activation_uid_and_token(client, {'Username': 'someone', 'FirstName': 'John', 'LastName': 'Doe', 'Email': 'e@fneu.com', 'password': 'hfewdus34729'})
-    
+def test_activate_user__is_sunspec_member(user_email, client_with_webpage_credentials, sunspec_alliance_member):
+    client = client_with_webpage_credentials
+    user_dict = register_user_dict()
+    user_dict['Email'] = user_email
+    token, uid = get_activation_uid_and_token(client, user_dict)
     url = reverse('user-activate')
     response = client.post(url, {'uid': uid, 'token': token})
-    user = User.objects.get(Username='someone')
+    user = User.objects.get(Username=user_dict['Username'])
     assert response.status_code == 204
-    assert user.MemberID == None
+    is_sunspec_member = user_email[user_email.index('@')+1:] == TEST_SUNSPEC_MEMBER_DOMAIN
+    if is_sunspec_member:
+        assert user.MemberID.MemberID == 1
+    else:
+        assert user.MemberID is None
 
+
+@pytest.mark.parametrize(
+    'user_email', [
+        f'user@not_a_{TEST_AHJ_OFFICE_DOMAIN}',
+        f'user@{TEST_AHJ_OFFICE_DOMAIN}'
+    ]
+)
 @pytest.mark.django_db
-def test_activate_user__user_is_member(generate_client_with_webpage_credentials, sunspec_alliance_member):
-    client = generate_client_with_webpage_credentials(Email='f@f.femdosikf')
-    token, uid = get_activation_uid_and_token(client, {'Username': 'someone', 'FirstName': 'John', 'LastName': 'Doe', 'Email': 'e@test.abcd', 'password': 'hfewdus34729'})
-    
+def test_activate_user__user_is_ahj_official(user_email, client_with_webpage_credentials, ahj_office_domain):
+    client = client_with_webpage_credentials
+    user_dict = register_user_dict()
+    user_dict['Email'] = user_email
+    token, uid = get_activation_uid_and_token(client, user_dict)
     url = reverse('user-activate')
     response = client.post(url, {'uid': uid, 'token': token})
-    user = User.objects.get(Username='someone')
+    user = User.objects.get(Username=user_dict['Username'])
     assert response.status_code == 204
-    assert user.MemberID.MemberID == 1
-
-@pytest.mark.django_db
-def test_activate_user__user_is_not_ahj_maintainer(generate_client_with_webpage_credentials, ahj_office_domain):
-    client = generate_client_with_webpage_credentials(Email='f@f.femdosikf')
-    token, uid = get_activation_uid_and_token(client, {'Username': 'someone', 'FirstName': 'John', 'LastName': 'Doe', 'Email': 'e@fneu.com', 'password': 'hfewdus34729'})
-    
-    url = reverse('user-activate')
-    response = client.post(url, {'uid': uid, 'token': token})
-    user = User.objects.get(Username='someone')
-    assert response.status_code == 204
-    assert AHJUserMaintains.objects.filter(UserID=user.UserID).count() == 0
-
-@pytest.mark.django_db
-def test_activate_user__user_is_ahj_maintainer(generate_client_with_webpage_credentials, ahj_office_domain):
-    client = generate_client_with_webpage_credentials(Email='f@f.femdosikf')
-    token, uid = get_activation_uid_and_token(client, {'Username': 'someone', 'FirstName': 'John', 'LastName': 'Doe', 'Email': 'e@test.abcd', 'password': 'hfewdus34729'})
-    
-    url = reverse('user-activate')
-    response = client.post(url, {'uid': uid, 'token': token})
-    user = User.objects.get(Username='someone')
-    assert response.status_code == 204
-    assert AHJUserMaintains.objects.filter(UserID=user.UserID).count() == 1
-
-
-def register_user_dict():
-    return {'FirstName': 'first', 'MiddleName': 'middle', 'LastName': 'last',
-            'Title': 'title', 'Email': 'email@email.email', 'WorkPhone': '123-456-7890',
-            'PreferredContactMethod': 'Email', 'ContactTimezone': 'PST',
-            'Username': 'username', 'password': '#$()asdf!@{}1'}
+    is_ahj_official = user_email[user_email.index('@')+1:] == TEST_AHJ_OFFICE_DOMAIN
+    if is_ahj_official:
+        assert AHJUserMaintains.objects.filter(UserID=user.UserID).count() == 1
+    else:
+        assert AHJUserMaintains.objects.filter(UserID=user.UserID).count() == 0
 
 
 @pytest.mark.parametrize(
@@ -167,10 +167,7 @@ def test_get_single_user__user_does_not_exist(generate_client_with_webpage_crede
     assert response.status_code == 400
 
 @pytest.mark.django_db
-def test_update_user__user_exists(generate_client_with_webpage_credentials, create_user):
-    admin_user = create_user()
-    admin_token = WebpageToken.objects.create(user_id=admin_user.UserID)
-    settings.WEBPAGE_TOKEN_CONSTANT = admin_token.key
+def test_update_user__user_exists(generate_client_with_webpage_credentials):
     PreferredContactMethod.objects.create(PreferredContactMethodID=1, Value='Email') # create a PreferredContactMethod so we can change that attr in the Contact model
     client = generate_client_with_webpage_credentials(Username='someone', Email='test@test.com')
     newUserData = {

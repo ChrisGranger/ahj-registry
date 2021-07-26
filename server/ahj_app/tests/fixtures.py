@@ -18,6 +18,14 @@ import uuid
 def api_client():
     return APIClient()
 
+
+def register_user_dict():
+    return {'FirstName': 'first', 'MiddleName': 'middle', 'LastName': 'last',
+            'Title': 'title', 'Email': 'email@email.email', 'WorkPhone': '123-456-7890',
+            'PreferredContactMethod': 'Email', 'ContactTimezone': 'PST',
+            'Username': 'username', 'password': '#$()asdf!@{}1'}
+
+
 @pytest.fixture
 def create_user(db, django_user_model):
     def make_user(**kwargs):
@@ -57,39 +65,29 @@ def client_with_credentials(db, create_user, api_client):
    api_client.force_authenticate(user=None)
 
 @pytest.fixture
-def client_with_webpage_credentials(db, create_user, api_client):
-   user = create_user()
-   token = WebpageToken.objects.create(user=user)
-   api_client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
-   return api_client
-
-@pytest.fixture
 def generate_client_with_webpage_credentials(db, create_user, api_client):
     def generate_client(**kwargs):
-        username = kwargs.pop('Username', None)
-        email = kwargs.pop('Email', None)
-        user = create_user(Username=username, Email=email)
+        user = create_user(**kwargs)
         token = WebpageToken.objects.create(user=user)
         api_client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
         return api_client
     return generate_client
 
 @pytest.fixture
-def client_with_api_credentials(db, create_user_with_active_api_token, api_client):
-   user = create_user_with_active_api_token()
-   api_client.credentials(HTTP_AUTHORIZATION='Token ' + user.api_token.key)
-   return api_client
+def client_with_webpage_credentials(db, generate_client_with_webpage_credentials):
+    return generate_client_with_webpage_credentials()
 
 @pytest.fixture
-def generate_client_with_api_credentials(db, create_user, api_client):
+def generate_client_with_api_credentials(db, create_user_with_active_api_token, api_client):
     def generate_client(**kwargs):
-        username = kwargs.pop('Username', None)
-        email = kwargs.pop('Email', None)
-        user = create_user(Username=username, Email=email)
-        token = APIToken.objects.create(user=user)
-        api_client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        user = create_user_with_active_api_token(**kwargs)
+        api_client.credentials(HTTP_AUTHORIZATION='Token ' + user.api_token.key)
         return api_client
     return generate_client
+
+@pytest.fixture
+def client_with_api_credentials(db, generate_client_with_api_credentials):
+    return generate_client_with_api_credentials()
 
 @pytest.fixture
 def ahj_obj(db):

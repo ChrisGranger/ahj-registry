@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'ahj_app.apps.AhjConfig',
     'djoser',
     'corsheaders',
-    'simple_history'
+    'simple_history',
+    'docs'
 ]
 
 MIDDLEWARE = [
@@ -255,5 +256,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATIC_ROOT = 'static'
+
+DOCS_ROOT = os.path.join(BASE_DIR, '../docs/build/html')
 
 GOOGLE_MAPS_KEY = ''
