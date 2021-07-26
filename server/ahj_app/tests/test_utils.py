@@ -1,7 +1,7 @@
 from django.db import connection
 from django.urls import reverse
 from django.http import HttpRequest
-from ahj_app.models import User, Edit, Comment
+from ahj_app.models import User, Edit, Comment, StatePolygon, AHJ, Address, Polygon
 from ahj_app.models_field_enums import *
 from fixtures import *
 from ahj_app.utils import *
@@ -131,20 +131,6 @@ def test_get_location_gecode_address_str(address, expected_output):
         location['Longitude']['Value'] = round(location['Longitude']['Value'], 1) 
     assert location == expected_output
 
-
-@pytest.mark.parametrize(
-   'input, expected_output', [
-       (None, None),
-       ('', ''),
-       ('\'e\'\'e\'e\'\'e\'', 'eeee'),
-       (';e;;e;e;;e;', 'eeee'),
-       (';e\'e;\'e;\'e;', 'eeee'),
-       (';;\';;\';\'', ''),
-   ]
-)
-def test_simple_sanitize(input, expected_output):
-    assert simple_sanitize(input) == expected_output
-
 @pytest.mark.parametrize(
    'type, val, expected_output', [
        (None, None, ''),
@@ -165,15 +151,6 @@ def test_get_name_query_cond(type, val, expected_output):
 )
 def test_list_query_cond(type, val, expected_output):
     assert get_list_query_cond(type,val, {}) == expected_output
-
-@pytest.mark.parametrize(
-   'type, val, expected_output', [
-       ('City', 'New York', 'Address.City=%(City)s AND '),
-       ('City', None, ''),
-   ]
-)
-def test_get_basic_user_query_cond(type, val, expected_output):
-    assert get_basic_user_query_cond(type,val, {}) == expected_output
 
 @pytest.mark.parametrize(
    'type, val, expected_output', [
@@ -335,6 +312,12 @@ def test_filter_ahjs__search_filters_and_location(ahj_filter_ahjs, ahj_filter_lo
     assert len(ahj_list) == 1
     assert ahj_list[0].AHJPK == 3
 
+@pytest.mark.django_db
+def test_update_user_api_call_num(create_user):
+    user = create_user(Email='b@b.com')
+    assert user.NumAPICalls == 0
+    update_user_api_call_num(user)
+    assert user.NumAPICalls == 1
 
 @pytest.mark.django_db
 def test_filter_dict_keys():

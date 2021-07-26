@@ -2,57 +2,68 @@
     <div>
         <h1>API</h1>
         <div>
-            <h4 id="api-description-text">Our API makes searching and filtering AHJs by location, AHJ ID, Building Code type, and many other attributes an easy process. 
-                Documentation for our API is still in the works. To obtain an API token, contact us at support@sunspec.org.</h4>
-            <b-button id="documentation-button" class="button" disabled block pill variant="primary">
-                Go to Documentation
-            </b-button>
+            <h4 id="api-description-text">
+                Our API allows searching AHJs by:
+                <ul>
+                  <li v-for="x in APIFilters" :key="x">{{ x }}</li>
+                </ul>
+                <b-button id="documentation-button" class="button" disabled block pill variant="primary">
+                    Go to Documentation
+                </b-button>
+                To use the API, please contact <span v-html="getMembershipMailTo()" /> to activate your API token.
+            </h4>
+            <b-table :fields="fields" :items="items" outlined :busy="!this.items.length">
+                <template #table-busy>
+                    <div class="text-center text-primary my-2">
+                        <b-spinner class="align-middle"></b-spinner>
+                        <strong>&nbsp; Loading...</strong>
+                    </div>
+                </template>
+                <template #cell(auth_token)="data">
+                  Token {{ data.item.auth_token }}
+                </template>
+                <template #cell(is_active)="data">
+                  {{ data.item.is_active ? 'Yes' : 'No' }}
+                </template>
+                <template #cell(expires)="data">
+                  {{ data.item['expires'] ? formatDate(data.item.expires) : '---' }}
+                </template>
+            </b-table>
         </div>
     </div>
 </template>
 
 <script>
-import axios from "axios";
-import constants from "../../../constants.js";
+import moment from "moment";
+import constants from "../../../constants";
+
 export default {
-    data() {
-        return {
-            APIToken: "",
-            generatedAPIToken: false,
-            SubmitStatus: "",
-            showAPIToken: false
+    mounted() {
+        if (!this.$store.getters.currentUserInfo) {
+           this.$store.dispatch('getUserInfo');
         }
     },
+    data() {
+        return {
+            APIFilters: ['Address', 'Location', 'AHJ ID', 'Building Codes', 'And More']
+        }
+    },
+    computed: {
+      fields() {
+          return this.items.length ? Object.keys(this.items[0]) : [];
+      },
+      items() {
+          let userInfo = this.$store.getters.currentUserInfo;
+          return userInfo ? [userInfo.APIToken] : [];
+      }
+    },
     methods: {
-        // Calls the APIToken create method in the backend which destroys the current user api token and returns a new one.
-        GenerateAPIToken() {
-            this.SubmitStatus = "PENDING";
-            this.showAPIToken = false;
-            axios.get(constants.API_ENDPOINT + "auth/api-token/create/", 
-                        {
-                            headers: {
-                                Authorization: this.$store.getters.authToken
-                            }
-                        }
-                    )
-                    .then((response) => {
-                        this.SubmitStatus = "OK";
-                        this.APIToken = response.data['auth_token'];
-                        this.generatedAPIToken = true;
-                        this.$store.state.currentUserInfo.APIToken = response.data['auth_token'];
-                    })
-                    .catch(() => {
-                        this.SubmitStatus = "ERROR";
-                    });
+        formatDate(date) {
+            return moment(date).format('MMMM Do YYYY, h:mm:ss a');
         },
-        displayAPIToken(){
-            this.generatedAPIToken = false;
-            if(this.showAPIToken){
-                this.showAPIToken = false;
-            }
-            else{
-                this.showAPIToken = true;
-            }
+        getMembershipMailTo() {
+            return `<a href="mailto:${constants.MEMBERSHIP_EMAIL}">${constants.MEMBERSHIP_EMAIL}</a>`
+
         }
     }
 }

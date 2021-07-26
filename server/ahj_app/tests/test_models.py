@@ -4,15 +4,6 @@ from fixtures import *
 import pytest
 import datetime
 
-from ahj_app.models import Contact
-
-
-@pytest.fixture
-def mpoly_obj():
-    p1 = geosPolygon( ((0, 0), (0, 1), (1, 1), (0, 0)) )
-    p2 = geosPolygon( ((1, 1), (1, 2), (2, 2), (1, 1)) )
-    mp = MultiPolygon(p1, p2)
-    return mp
 
 def create_ahj(ahjpk, ahjid, mpoly_obj):
     polygon = Polygon.objects.create(Polygon=mpoly_obj, LandArea=1, WaterArea=1, InternalPLatitude=1, InternalPLongitude=1)
@@ -474,6 +465,30 @@ def test_user_get_email_field_name(create_user):
     assert user.get_email_field_name() == 'Email' 
 
 @pytest.mark.django_db
+def test_user_get_submitted_edits(create_user):
+    user1 = create_user(Email='a@a.com')
+    user2 = create_user(Email='b@b.com')
+    assert user1.get_num_submitted_edits() == 0
+
+    Edit.objects.create(SourceRow=1, SourceTable='AHJ', SourceColumn='BuildingCode', ChangedBy=user1, DateRequested='2021-05-27')
+    Edit.objects.create(SourceRow=2, SourceTable='AHJ', SourceColumn='ElectricCode', ChangedBy=user1, DateRequested='2021-05-26')
+    Edit.objects.create(SourceRow=3, SourceTable='AHJ', SourceColumn='WindCode', ChangedBy=user2, DateRequested='2021-05-25')
+    assert user1.get_num_submitted_edits() == 2
+
+@pytest.mark.django_db
+def test_user_get_accepted_edits(create_user):
+    user1 = create_user(Email='a@a.com')
+    user2 = create_user(Email='b@b.com')
+    assert user1.get_num_accepted_edits() == 0
+
+    Edit.objects.create(SourceRow=1, SourceTable='AHJ', SourceColumn='BuildingCode', ChangedBy=user1, DateRequested='2021-05-27', ReviewStatus='A')
+    Edit.objects.create(SourceRow=2, SourceTable='AHJ', SourceColumn='ElectricCode', ChangedBy=user1, DateRequested='2021-05-26', ReviewStatus='P')
+    Edit.objects.create(SourceRow=3, SourceTable='AHJ', SourceColumn='WindCode', ChangedBy=user2, DateRequested='2021-05-25', ReviewStatus='A')
+    Edit.objects.create(SourceRow=4, SourceTable='AHJ', SourceColumn='FireCode', ChangedBy=user1, DateRequested='2021-05-29')
+    Edit.objects.create(SourceRow=5, SourceTable='AHJ', SourceColumn='ResidentialCode', ChangedBy=user1, DateRequested='2021-05-28', ReviewStatus='A')
+    assert user1.get_num_accepted_edits() == 2
+
+@pytest.mark.django_db
 def test_user_get_maintained_ahjs(create_user, two_ahjs):
     ahj1, ahj2 = two_ahjs
     user = create_user(Email='a@a.com')
@@ -486,13 +501,14 @@ def test_user_get_maintained_ahjs(create_user, two_ahjs):
 @pytest.mark.django_db
 def test_user_get_API_token__token_exists(create_user):
     user = create_user()
-    token = APIToken.objects.create(user=user)
-    assert user.get_API_token() == token.key
+    token = user.api_token
+    assert user.get_API_token() == token
 
 @pytest.mark.django_db
 def test_user_get_API_token__token_does_not_exist(create_user):
     user = create_user()
-    assert user.get_API_token() == ''
+    user.api_token.delete()
+    assert user.get_API_token() is None
 
 """
     WebpageToken Model
@@ -514,8 +530,7 @@ def test_WebpageToken_str(create_user):
 """
 @pytest.mark.django_db
 def test_APIToken_str(create_user):
-    user = create_user(Email='a@a.com')
-    token = APIToken.objects.create(user=user)
+    token = create_user(Email='a@a.com').api_token
     assert str(token) == 'APIToken(' + token.key + ')'
 
 """

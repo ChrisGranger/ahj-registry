@@ -8,12 +8,15 @@
         <div style="margin-right:10px;">
             <i style="margin-right:10px" v-if="$parent.isManaged && this.data.ReviewStatus==='P'" v-on:click="$emit('official',{Type:'Accept',eID: data.EditID});data.ReviewStatus='A';changeStatus();" class="fa fa-check"></i>
             <i v-if="$parent.isManaged && this.data.ReviewStatus==='P'" v-on:click="$emit('official', {Type:'Reject',eID: data.EditID});data.ReviewStatus='R';changeStatus()" class="fa fa-times"></i>
+            <i v-if="$parent.isManaged && this.data.ReviewStatus!=='P'" v-on:click="undoStatusChange()" class="fas fa-undo"></i>
         </div>
     </div>
 </template>
 
 <script>
 import moment from "moment";
+import axios from 'axios';
+import constants from '../../constants.js';
 
 export default {
     props: {
@@ -40,6 +43,22 @@ export default {
                     this.$refs.eobj.style.backgroundColor = "#FFBEBE";
                 }
         },
+        undoStatusChange(){
+            let url = constants.API_ENDPOINT + 'edit/undo/'
+            axios
+                .post(url,{ EditID: this.data.EditID }, {
+                    headers: {
+                        Authorization: this.$store.getters.authToken
+                    }
+                })
+                .then(() => {
+                    this.data.ReviewStatus = 'P';
+                    this.$refs.eobj.style.backgroundColor = "white";
+                })
+                .catch(() => {
+                    alert("Edit could not be undone, you may have edits that were applied after this one")
+                })
+        }
     }
 }
 </script>

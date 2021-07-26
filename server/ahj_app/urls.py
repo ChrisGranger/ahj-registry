@@ -26,8 +26,10 @@ urlpatterns = [
     path('data-vis/data-map/polygon/',           views_datavis.data_map_get_polygon,                      name='data-map-polygon'),
     path('contact/',                             views_misc.send_support_email,                           name='send-support-email'),
     path('auth/form-validator/',                 views_misc.form_validator,                               name='form-validator'),
+    path('auth/users/activation/',               views_users.ActivateUser.as_view({'post': 'activation'}),                        name='user-activate'),
     path('auth/users/reset_password_confirm/',   views_users.ConfirmPasswordReset.as_view({'post': 'reset_password_confirm'}),    name='confirm-reset-password'),
     path('auth/',                                include(('djoser.urls', 'djoser'), namespace='djoser')),
     path('auth/',                                include(('djoser.urls.authtoken', 'djoser'), namespace='djoser-authtoken')),
-    path('edit/latest-submitted',                views_edits.latest_submitted,                            name='latest-submitted')
+    path('edit/latest-submitted',                views_edits.latest_submitted,                            name='latest-submitted'),
+    path('edit/undo/',                           views_edits.undo,                                        name='edit-undo')
 ]

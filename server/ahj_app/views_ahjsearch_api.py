@@ -6,32 +6,37 @@ from django.apps import apps
 from django.utils import timezone
 
 from rest_framework import status
-from rest_framework.decorators import permission_classes, authentication_classes, api_view
+from rest_framework.decorators import permission_classes, authentication_classes, throttle_classes, api_view
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
+from .throttles import MemberRateThrottle
 from rest_framework.response import Response
 
 from .authentication import APITokenAuth
 from .models import APIToken
 from .serializers import AHJSerializer
 from .utils import order_ahj_list_AHJLevelCode_PolygonLandArea, filter_ahjs, get_str_location, \
-    get_public_api_serializer_context, get_ob_value_primitive, get_str_address, get_location_gecode_address_str, check_address_empty
-
+    get_public_api_serializer_context, get_ob_value_primitive, get_str_address, get_location_gecode_address_str, check_address_empty, update_user_api_call_num
 
 
 def deactivate_expired_api_tokens():
+    """
+    Sets the ``is_active`` field to ``False`` for APIToken rows whose ``expires`` date has passed.
+    """
     APIToken.objects.filter(is_active=True, expires__lte=timezone.now()).update(is_active=False)
 
 
 @api_view(['POST'])
 @authentication_classes([APITokenAuth])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MemberRateThrottle])
 def ahj_list(request):
     """
-    Functional view for the AHJList
+    Public API endpoint for AHJ Search. See the API documentation for more information.
     """
-    # By default select all the AHJs
-    # filter by the latitude, longitude
+    # increment user's # of api calls
+    if (request.user.is_authenticated):
+        update_user_api_call_num(request.user)
 
     # Process sent Location object
     str_location = None
@@ -86,7 +91,16 @@ def ahj_list(request):
 @api_view(['POST'])
 @authentication_classes([APITokenAuth])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MemberRateThrottle])
 def ahj_geo_location(request):
+    """
+    Public API endpoint for searching AHJs by Location.
+    This endpoint is from AHJ Registry 1.0, and the AHJ Registry 2.0 ``ahj_list`` endpoint should be used instead.
+    """
+    # increment user's # of api calls
+    if (request.user.is_authenticated):
+        update_user_api_call_num(request.user)
+
     ahjs_to_search = request.data.get('ahjs_to_search', None)
 
     # If sent an Orange Button Address containing Location
@@ -116,7 +130,16 @@ def ahj_geo_location(request):
 @api_view(['POST'])
 @authentication_classes([APITokenAuth])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MemberRateThrottle])
 def ahj_geo_address(request):
+    """
+      Public API endpoint for searching AHJs by Address.
+      This endpoint is from AHJ Registry 1.0, and the AHJ Registry 2.0 ``ahj_list`` endpoint should be used instead.
+    """
+    # increment user's # of api calls
+    if (request.user.is_authenticated):
+        update_user_api_call_num(request.user)
+
     ahjs_to_search = request.data.get('ahjs_to_search', None)
 
     ob_address = request.data.get('Address', None)

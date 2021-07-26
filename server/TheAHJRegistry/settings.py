@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'ahj_app.apps.AhjConfig',
     'djoser',
     'corsheaders',
-    'simple_history'
+    'simple_history',
+    'docs'
 ]
 
 MIDDLEWARE = [
@@ -78,6 +79,10 @@ CORS_ORIGIN_REGEX_WHITELIST = [
 
 ROOT_URLCONF = 'TheAHJRegistry.urls'
 
+# Throttle rates
+SUNSPEC_MEMBER_API_THROTTLE_RATE = '100000000/month'
+WEBPAGE_SEARCH_THROTTLE_RATE = '3/day'
+
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': {
         'django_filters.rest_framework.DjangoFilterBackend'
@@ -89,17 +94,13 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer'
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        'member': SUNSPEC_MEMBER_API_THROTTLE_RATE,
+        'webpage-search': WEBPAGE_SEARCH_THROTTLE_RATE
+    },
     'COERCE_DECIMAL_TO_STRING': False,
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 20,
-    'DEFAULT_THROTTLE_CLASSES': [
-        # 'rest_framework.throttling.UserRateThrottle',
-        # 'rest_framework.throttling.AnonRateThrottle'
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        # 'user': '10/day',
-        'anon': '10/day'
-    }
+    'PAGE_SIZE': 20
 }
 
 TEMPLATES = [
@@ -135,6 +136,13 @@ DATABASES = {
         'PASSWORD': '',
         'HOST': '',
         'PORT': ''
+    }
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'APICache',
     }
 }
 
@@ -195,8 +203,12 @@ DJOSER = {
 
     'SERIALIZERS': {
         'user_create': 'ahj_app.serializers.UserCreateSerializer',
+        'password_reset': 'ahj_app.serializers.SendEmailResetSerializer',
         'user': 'ahj_app.serializers.UserCreateSerializer',
         'token': 'ahj_app.serializers.WebpageTokenSerializer'
+    },
+    'EMAIL': {
+        'activation': 'ahj_app.email.ActivateUserEmail',
     }
 }
 
@@ -244,5 +256,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATIC_ROOT = 'static'
+
+DOCS_ROOT = os.path.join(BASE_DIR, '../docs/build/html')
 
 GOOGLE_MAPS_KEY = ''

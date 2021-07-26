@@ -10,7 +10,7 @@ from django.utils import timezone
 from .form import UserResetPasswordForm, UserDeleteToggleAPITokenForm, EditApproveForm, UserGenerateAPITokenForm
 from ..models import User, APIToken, Edit, AHJUserMaintains, Comment
 from ..usf import dict_filter_keys_start_with, ENUM_FIELDS
-from ..views_edits import apply_edits, reset_edit, edit_is_resettable
+from ..views_edits import apply_edits, reset_edit, edit_is_resettable, revert_edit
 
 
 def get_value_or_primary_key(obj, field):
@@ -105,7 +105,7 @@ def partition_by_field(queryset, field, value):
 
 def set_date_from_str(date_str):
     """
-    Returns a date object from a string formatted in '%Y-%m-%d'.
+    Returns a date object from a string formatted in ``%Y-%m-%d``.
     """
     try:
         return timezone.make_aware(datetime.datetime.strptime(date_str, '%Y-%m-%d'))
@@ -115,11 +115,18 @@ def set_date_from_str(date_str):
 
 def process_generate_api_token_data(post_data):
     """
-    This expects the post_data to contain an array called 'user_to_form'.
+    This expects the post_data to contain an array called ``user_to_form``.
     Each item in this array is of the form:
-     - '<UserID>.<form_prefix>' (i.e. '1.form-0')
+
+    .. code-block:: python
+
+        '<UserID>.<form_prefix>' (i.e. '1.form-0')
+
     Each form then may add two form data key-value pairs:
-     - '<form_prefix>-expiration_date': '<date>' (i.e. 'form-0-expiration_date': '2021-06-04')
+
+    .. code-block:: python
+
+        '<form_prefix>-expiration_date': '<date>' (i.e. 'form-0-expiration_date': '2021-06-04')
     """
     user_to_form_pairs = [pair.split('.') for pair in post_data.getlist('user_to_form')]
     user_form_data = []
@@ -169,7 +176,7 @@ def delete_toggle_api_token(user, toggle=None, delete=False):
     """
     Modifies a user's API token by either deleting it or toggling it on/off.
     """
-    if not hasattr(user, 'api_token'):
+    if not APIToken.objects.filter(user=user):
         return
     if delete:
         user.api_token.delete()
@@ -181,8 +188,7 @@ def delete_toggle_api_token(user, toggle=None, delete=False):
 
 def set_toggle(form_value):
     """
-    Used with an HTML dropdown input with values:
-    'On', 'Off','DoNothing'
+    Converts the input values on an HTML dropdown with values ``On, Off, DoNothing`` to boolean values.
     """
     if form_value == 'On':
         return True
@@ -194,8 +200,8 @@ def set_toggle(form_value):
 
 def set_delete(form_value):
     """
-    Return True if form_value is 'on'.
     Used with an HTML checkbox input.
+    Return ``True`` if **form_value** is ``on``.
     """
     if form_value == 'on':
         return True
@@ -204,12 +210,19 @@ def set_delete(form_value):
 
 def process_delete_toggle_api_token_data(post_data):
     """
-    This expects the post_data to contain an array called 'user_to_form'.
+    This expects the post_data to contain an array called ``user_to_form``.
     Each item in this array is of the form:
-     - '<UserID>.<form_prefix>' (i.e. '1.form-0')
+
+    .. code-block:: python
+
+        '<UserID>.<form_prefix>' (i.e. '1.form-0')
+
     Each form then may add two form data key-value pairs:
-     - '<form_prefix>-toggle': '<On,Off,DoNothing>' (i.e. 'form-0-toggle': 'On')
-     - '<form_prefix>-delete_token': 'on' (i.e. 'form-0-delete_token': 'on')
+
+    .. code-block:: python
+
+        '<form_prefix>-toggle': '<On/Off/DoNothing>' (i.e. 'form-0-toggle': 'On')
+        '<form_prefix>-delete_token': 'on' (i.e. 'form-0-delete_token': 'on')
     """
     user_to_form_pairs = [pair.split('.') for pair in post_data.getlist('user_to_form')]
     user_form_data = []
@@ -258,7 +271,10 @@ user_delete_toggle_api_token.short_description = 'Delete/Toggle API Token'
 def build_url_parameters_for_change_list_filtering(queryset, field_key_pairs):
     """
     Builds a URL query of key-value pairs for each field of the form:
-     - <field>=<value>,...<value>
+
+    .. code-block:: xml
+
+        <field>=<value>,...,<value> (i.e. 'UserID=1,2,3')
     """
     query = '?'
     for f in field_key_pairs:
@@ -353,11 +369,18 @@ user_query_submitted_comments.short_description = 'Query Submitted Comments'
 
 def process_approve_edits_data(post_data, requesting_user):
     """
-    This expects the post_data to contain an array called 'edit_to_form'.
+    This expects the post_data to contain an array called ``edit_to_form``.
     Each item in this array is of the form:
-     - '<EditID>.<form_prefix>' (i.e. '1.form-0')
+
+    .. code-block:: python
+
+        '<EditID>.<form_prefix>' (i.e. '1.form-0')
+
     Each form then may add two form data key-value pairs:
-     - '<form_prefix>-date_effective': '<date>' (i.e. 'form-0-date_effective': '2021-06-04')
+
+    .. code-block:: python
+
+        '<form_prefix>-date_effective': '<date>' (i.e. 'form-0-date_effective': '2021-06-04')
     """
     edit_to_form_pairs = [pair.split('.') for pair in post_data.getlist('edit_to_form')]
     edit_form_data = []
@@ -439,7 +462,7 @@ def edit_roll_back_edits(self, request, queryset):
         The form has been filled out and submitted.
         """
         for edit in non_resettable_edits:
-            reset_edit(request.user, edit)
+            revert_edit(request.user, edit)
         for edit in resettable_edits:
             revert_occurred = not edit_is_resettable(edit)
             reset_edit(request.user, edit, force_resettable=revert_occurred, skip_undo=revert_occurred)

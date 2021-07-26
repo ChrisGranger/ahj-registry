@@ -1,7 +1,7 @@
 from django.urls import reverse
 from django.contrib.gis.geos import Polygon as geosPolygon
 from django.contrib.gis.geos import MultiPolygon
-from ahj_app.models import User, Edit, Comment, Polygon, StatePolygon, CityPolygon, CountyPolygon, CountySubdivisionPolygon
+from ahj_app.models import AHJ, Address, Polygon, StatePolygon, CityPolygon, CountyPolygon, CountySubdivisionPolygon
 from fixtures import *
 import pytest
 import datetime

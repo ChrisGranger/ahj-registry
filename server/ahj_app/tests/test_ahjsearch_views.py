@@ -1,11 +1,13 @@
 from django.db import connection
 from django.urls import reverse
 from django.http import HttpRequest
-from ahj_app.models import User, Edit, Comment, APIToken
-from ahj_app.models_field_enums import *
+from ahj_app.models import AHJ, Polygon, Address, User, Edit, Comment, APIToken, StatePolygon
+from ahj_app.models_field_enums import AHJLevelCode, AHJ_LEVEL_CODE_CHOICES, BuildingCode, BUILDING_CODE_CHOICES, \
+    ElectricCode, ELECTRIC_CODE_CHOICES
 from django.utils import timezone
 
 from fixtures import *
+from constants import *
 from ahj_app.utils import *
 from ahj_app import views_ahjsearch_api
 import pytest
@@ -459,11 +461,26 @@ def test_ahj_geo_location__search_array_has_ahj(list_of_ahjs, client_with_creden
     assert len(response.data) == 1
     assert response.status_code == 200
 
+@pytest.mark.parametrize(
+   'urlName, args', [
+       ('ahj-public', { 'Location': {'Longitude': { 'Value': 'hello' }, 'Latitude': { 'Value': 'hello' }}}), # pass invalid args to each so early exit
+       ('ahj-geo-address', {}),
+       ('ahj-geo-location', { 'Latitude': { 'V': '25' }}),
+   ]
+)
+@pytest.mark.django_db
+def test_user_num_api_calls_updates(urlName, args, list_of_ahjs, generate_client_with_api_credentials, valid_location_ob):
+    client = generate_client_with_api_credentials(Email='a@a.a')
+    url = reverse(urlName)
+    # call fails early, so it's expected that api call num is incremented at the start
+    response = client.post(url, args, format='json')
+    user = User.objects.get(Email='a@a.a')
+    assert user.NumAPICalls == 1
 
 @pytest.mark.django_db
-def test_deactivate_expired_api_tokens(create_user):
-    token = APIToken.objects.create(user=create_user(),
-                                    expires=timezone.now() - datetime.timedelta(days=1),
-                                    is_active=True)
+def test_deactivate_expired_api_tokens(create_user_with_active_api_token):
+    user = create_user_with_active_api_token()
+    user.api_token.expires = timezone.now() - datetime.timedelta(days=1)
+    user.api_token.save()
     views_ahjsearch_api.deactivate_expired_api_tokens()
-    assert APIToken.objects.get(user=token.user).is_active is False
+    assert APIToken.objects.get(user=user).is_active is False

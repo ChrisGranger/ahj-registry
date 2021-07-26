@@ -92,12 +92,19 @@ a {
 
 #password-reset-container {
     background-color: #f7f7f7;
+    overflow: hidden;
 }
 
 .top-buffer { 
     margin-top: 10%; 
 }
 
+.vertical-center{
+    overflow: hidden;
+}
+#router-v{
+    overflow: hidden;
+}
 #password-reset-form-title {
     display: inline-block;
     margin-top: 0.8em;

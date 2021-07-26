@@ -13,6 +13,7 @@
                                 <!-- if this is an edit object and user manages this AHJ, allow acceptance / rejections -->
             <i style="margin-right:10px" v-if="$parent.isManaged && editstatus==='P'" v-on:click="$emit('official',{Type:'Accept',eID: eID});editstatus = 'A';changeStatus();" class="fa fa-check"></i>
             <i style="margin-right:10px" v-if="$parent.isManaged && editstatus==='P'" v-on:click="$emit('official',{Type:'Reject',eID: eID});editstatus='R';changeStatus()" class="fa fa-times"></i>
+            <i v-if="$parent.isManaged && editstatus !=='P'" v-on:click="undoStatusChange()" class="fas fa-undo"></i>
             </div>
             <div style="display:flex;" v-if="isEditing">
                 <i ref='chev' style="height:100%;margin-right: 10px;" class="fa fa-chevron-down" v-on:click="showInfo('c-info')"></i>
@@ -61,6 +62,9 @@
 </template>
 
 <script>
+import axios from 'axios';
+import constants from '../../constants.js';
+
 
 export default {
     props: {
@@ -224,6 +228,22 @@ export default {
             this.$parent.editingCont = this.ID;
             this.$parent.setAddrAndLocation();
             this.$parent.showBigDiv('addressLoc');
+        },
+        undoStatusChange(){
+            let url = constants.API_ENDPOINT + 'edit/undo/'
+            axios
+                .post(url,{ EditID: this.eID }, {
+                    headers: {
+                        Authorization: this.$store.getters.authToken
+                    }
+                })
+                .then(() => {
+                    this.editstatus = 'P';
+                    this.$refs.cc.style.backgroundColor = "white";
+                })
+                .catch(() => {
+                    alert("Edit could not be undone, you may have edits that were applied after this one")
+                })
         }
     },
     watch: {

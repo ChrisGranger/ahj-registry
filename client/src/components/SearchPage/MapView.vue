@@ -45,9 +45,14 @@ export default {
       this.addDrawingTools();
     },
     addDrawingTools(){
-      this.searchPolygonFeatureGroup = new L.FeatureGroup();
+      this.searchPolygonFeatureGroup = new L.geoJSON();
+      // add current searchedGeoJSON if exists
+      if (this.$store.state.searchedGeoJSON) {
+        try {
+          this.searchPolygonFeatureGroup.addData(this.$store.state.searchedGeoJSON);
+        } catch (err) { console.log('Invalid GeoJSON for search'); }
+      }
       this.leafletMap.addLayer(this.searchPolygonFeatureGroup);
-
       // add the polygon/region drawing tool
       this.controlLayer =  new L.Control.Draw({
         draw: {
@@ -117,8 +122,13 @@ export default {
      */
     selectPolygon(newAHJID) {
       let map = this.leafletMap;
+      // Do not select drawn search polygons
+      let searchedPolygonLeafletIDs = new Set();
+      this.searchPolygonFeatureGroup.eachLayer(layer => {
+        searchedPolygonLeafletIDs.add(layer._leaflet_id);
+      });
       map.eachLayer(function(layer) {
-        if (layer.feature) {
+        if (layer.feature && !searchedPolygonLeafletIDs.has(layer._leaflet_id)) {
           if (layer.feature.properties.AHJID === newAHJID) {
             map.fitBounds(layer.getBounds());
             layer.setStyle(constants.MAP_PLYGN_SLCTD_SYTLE());

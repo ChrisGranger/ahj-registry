@@ -16,7 +16,8 @@
         <b-nav-item href="#/ahj-search">Search</b-nav-item>
         <b-nav-item href="#/data-vis">Coverage</b-nav-item>
         <b-nav-item href="#/ahj-search/?tutorial=1">Tutorial</b-nav-item>
-        <b-nav-item v-b-modal.my-modal @click='ResetFeedbackForm'>Help</b-nav-item> 
+        <b-nav-item :href="DocumentationLink" target="_blank">Documentation</b-nav-item>
+        <b-nav-item v-b-modal.my-modal @click='ResetFeedbackForm'>Help</b-nav-item>
         <feedback-form ref="feedbackFormComponent"></feedback-form>
       </b-navbar-nav>
       <b-navbar-nav class="ml-auto navbar-background">
@@ -56,6 +57,7 @@
 
 <script>
 import FeedbackForm from "../components/FeedbackForm.vue";
+import constants from "../constants";
 export default {
   model: {
     event: 'event-open-modal'
@@ -69,6 +71,9 @@ export default {
     },
     Username() {
       return this.$store.getters.currentUserInfo ? this.$store.getters.currentUserInfo.Username : "";
+    },
+    DocumentationLink() {
+      return constants.DOCS_ENDPOINT;
     }
   },
   methods: {

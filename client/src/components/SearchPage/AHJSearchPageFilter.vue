@@ -12,24 +12,7 @@
           </b-tooltip>
         </div>
         <div id='drop' class="form-group dropdown-content">
-  <!--        <div class='options' @click='showapisettings'>-->
-  <!--          <i id='plusbuttonAPI' class="fas fa-plus"></i>-->
-  <!--          API Settings-->
-  <!--        </div>-->
-  <!--        <div id='apisettings' class='dropdown-content'>-->
-  <!--          <div class='api-settings-input'>-->
-  <!--            <div class='api-settings-input-title'>-->
-  <!--              <h2>View Edits As</h2>-->
-  <!--              <b-icon icon="info-circle-fill" class="view-edits-info-icon" scale="1" variant="info" id="info-tooltip-target2"></b-icon>-->
-  <!--              <b-tooltip target="info-tooltip-target2" triggers="hover" placement="right" variant="light">-->
-  <!--                <b>Latest Edits</b> includes unconfirmed edits provided by the community. <br>-->
-  <!--                <b>Confirmed Edits</b> only include edits confirmed by AHJs.-->
-  <!--              </b-tooltip>-->
-  <!--            </div>-->
-  <!--            <b-form-select v-model="parameters.view" class="search-input" :options="choiceFields.APIEditViewMode" />-->
-  <!--          </div>-->
-  <!--        </div>-->
-          <div class='options' @click='showbc'>
+          <div class='options' @click='toggleDropdown("bcdrop", "plusbutton")'>
             <i id='plusbutton' class="fas fa-plus"></i>
             Building Codes
           </div>
@@ -58,7 +41,7 @@
               <b-form-select v-model="parameters.WindCode" :options="choiceFields.AHJ.WindCode" class="form-select" multiple :select-size="2"/>
             </div>
           </div>
-          <div class='options' @click='showMoreSearchOptions'>
+          <div class='options' @click='toggleDropdown("search-options-drop", "plusbuttonAHJ")'>
             <i id='plusbuttonAHJ' class="fas fa-plus"></i>
             More Search Options
           </div>
@@ -109,21 +92,7 @@ import constants from "../../constants";
 export default {
   data() {
     return {
-      parameters: {
-        view: "latest",
-        AHJName: "",
-        AHJCode: "",
-        AHJLevelCode: "",
-        AHJID: "",
-        Address: "", // Location (latlng) searches are done through the Address field
-        BuildingCode: [],
-        ElectricCode: [],
-        FireCode: [],
-        ResidentialCode: [],
-        WindCode: [],
-        StateProvince: "",
-        callerID: 'searchpagefilter'
-      },
+      parameters: this.getParametersObject(),
       choiceFields: constants.CHOICE_FIELDS,
       filterToggled: true,
       windowWidth: window.innerWidth
@@ -140,27 +109,9 @@ export default {
     // Create window resize listener
     this.$nextTick(() => {
       window.addEventListener('resize', this.onResize);
-    })
-    // Check if a search was given in the query params; if so, search by it (run tutorial when tutorial is non null and 1, else )
-    if (this.$route.query.tutorial != 1 && Object.keys(this.$route.query).length !== 0) {
-      Object.keys(this.parameters)
-          .filter(a => a !== 'callerID') // this should not be changed by the user
-          .forEach(key => {
-            let paramValue = this.$route.query[key];
-            if (paramValue) {
-              if (Array.isArray(this.parameters[key])) {
-                let choices = this.choiceFields.AHJ[key].map(a => a.value);
-                this.parameters[key] = paramValue
-                    .split(',')
-                    .filter(v => choices.includes(v));
-              } else {
-                this.parameters[key] = paramValue; // set the search values
-              }
-            }
-          });
-      if (this.$route.query['Location']) {
-        this.parameters['Address'] = this.$route.query['Location']; // send location queries through address field
-      }
+    });
+    // Check if a search was given in the query params
+    if (this.setQueryFromObject(this.$route.query)) {
       this.updateQuery();
     }
   },
@@ -203,8 +154,14 @@ export default {
      * Clear the search query inputs
      */
     clearFilters() {
-      this.parameters = {
-        view: "latest",
+      this.parameters = this.getParametersObject();
+      this.$store.commit('setSearchGeoJSON', null);
+    },
+    /**
+     * Returns object for storing search parameters
+     */
+    getParametersObject() {
+      return {
         AHJName: "",
         AHJCode: "",
         AHJLevelCode: "",
@@ -215,39 +172,63 @@ export default {
         FireCode: [],
         ResidentialCode: [],
         WindCode: [],
-        StateProvince: "",
-        callerID: 'searchpagefilter'
+        StateProvince: ""
       };
-      this.$store.commit('setSearchGeoJSON', null);
     },
     /**
      * Create a parameterized url for containing all filled search parameters
      */
     getParameterizedURL() {
-      let currentURL = window.location.href;
-      if (currentURL.indexOf("?") > 0) {
-        currentURL = currentURL.substring(0, currentURL.indexOf("?"));
+      let parameters = this.parameters;
+      let geojson = this.$store.state.searchedGeoJSON;
+      if (geojson) {
+        parameters['GeoJSON'] = encodeURIComponent(JSON.stringify(geojson));
       }
-      let queryString = "";
-      Object.keys(this.parameters)
-          .filter(a => a !== 'callerID') // this should not be set by users
-          .forEach(key => {
-            if(this.parameters[key] !== ""){
-              if(Array.isArray(this.parameters[key])){
-                if(this.parameters[key].length > 0 && this.parameters[key][0] !== ""){
-                  queryString += key + "=" + this.parameters[key].join(',');
-                  queryString += "&";
-                }
-              } else {
-                queryString += key + "=" + this.parameters[key] + "&";
-              }
-            }
-          });
-      if (queryString) {
-        currentURL += '?' + queryString;
+      let currentURL = window.location.href.split('?')[0];
+      let queryString = Object.keys(this.parameters)
+          .filter(k => {
+            let v = this.parameters[k];
+            return v !== '' && (Array.isArray(v) ? v.filter(x => x !== '').length !== 0 : true)
+          })
+          .map(k => {
+            let v = this.parameters[k];
+            v = Array.isArray(v) ? v : [v];
+            return `${k}=${v.join(',')}`;
+          })
+          .join('&');
+      return `${currentURL}?${queryString}`;
+    },
+    /**
+     * Sets the parameters of the search using the values
+     * of the keys in the object that match the parameter names.
+     * @returns boolean if any parameters were set.
+     */
+    setQueryFromObject(obj) {
+      let parameters = Object.keys(this.parameters)
+          .concat('GeoJSON')
+          .filter(k => Object.prototype.hasOwnProperty.call(obj, k));
+      let setParameters = parameters.length > 0;
+      if (setParameters) {
+        parameters.filter(k => Array.isArray(this.parameters[k]))
+        .forEach(k => {
+          let choices = this.choiceFields.AHJ[k]
+              .map(a => a.value);
+          this.parameters[k] = obj[k]
+              .split(',')
+              .filter(v => choices.includes(v));
+        });
+        parameters.filter(k => k !== 'GeoJSON' && !Array.isArray(this.parameters[k]))
+        .forEach(k => this.parameters[k] = obj[k]);
+        if (obj['GeoJSON']) {
+          try {
+            let geojson = JSON.parse(decodeURIComponent(obj['GeoJSON']));
+            this.$store.commit('setSearchGeoJSON', geojson);
+          } catch (err) {
+            console.log('Invalid JSON in GeoJSON query parameter');
+          }
+        }
       }
-      currentURL = currentURL.slice(0,-1);
-      return currentURL;
+      return setParameters;
     },
     /**
      * Helper to write parameterized url to user's clipboard
@@ -260,71 +241,36 @@ export default {
     /**
      * Toggles the visibility of the additional filters and search options
      */
-    show(){
-      document.getElementById('drop').classList.toggle('show')
-      document.getElementById('showbutton').classList.toggle('dropdown-hide')
-      document.getElementById('hidebutton').classList.toggle('dropdown-hide')
+    show() {
+      let elems = ['drop', 'showbutton', 'hidebutton'].map(id => document.getElementById(id));
+      ['show', 'dropdown-hide', 'dropdown-hide'].forEach((c, i) => elems[i].classList.toggle(c));
     },
     /**
-     * Toggles the visibility of the api settings dropdown
+     * Toggles the visibility of dropdown
      */
-    showapisettings() {
-      let currContent = document.getElementsByClassName("active");
-      if (currContent.length > 0 && currContent[0].id !== 'apisettings'){
-        this.closeActiveSettings();
+    toggleDropdown(dropdownId, iconId) {
+      let content = document.getElementById(dropdownId);
+      let icon = document.getElementById(iconId);
+      let alreadyActive = content.classList.contains('active');
+      let activeContent = [...document.getElementsByClassName('active')];
+      let activeIcons = [...document.getElementsByClassName('fa-minus')];
+      activeContent.forEach(c => this.setClassesOnElem(c, [], ['active', 'show']));
+      activeIcons.forEach(i => this.setClassesOnElem(i, ['fa-plus'], ['fa-minus']));
+      if (!alreadyActive) {
+        this.setClassesOnElem(content, ['active', 'show'], [])
+        this.setClassesOnElem(icon, ['fa-minus'], ['fa-plus'])
       }
-      let icon = document.getElementById('plusbuttonAPI');
-      let content = document.getElementById('apisettings');
-      this.toggleSettings(icon,content);
     },
     /**
-     * Toggles the visibility of the building codes dropdown
+     * For the given element, adds and removes the specified classes
+     * from its classList.
+     * @param elem the element with a classList
+     * @param toAdd the classes to add
+     * @param toRemove the classes to remove
      */
-    showbc(){
-      let currContent = document.getElementsByClassName("active");
-      // Covers case if they click on this dropdown while it's active.
-      if (currContent.length > 0 && currContent[0].id !== 'bcdrop'){
-        this.closeActiveSettings();
-      }
-      let icon = document.getElementById('plusbutton');
-      let content = document.getElementById('bcdrop');
-      this.toggleSettings(icon,content);
-    },
-    /**
-     * Toggles the visibility of the additional search options dropdown
-     */
-    showMoreSearchOptions(){
-      let currContent = document.getElementsByClassName("active");
-      if (currContent.length > 0 && currContent[0].id !== 'search-options-drop'){
-        this.closeActiveSettings();
-      }
-      let icon = document.getElementById('plusbuttonAHJ');
-      let content = document.getElementById('search-options-drop');
-      this.toggleSettings(icon,content);
-    },
-    /**
-     * Toggles the visibility and +/- icon of a dropdown.
-     */
-    toggleSettings(icon, content){
-      content.classList.toggle('show');
-      content.classList.toggle('active');
-      icon.classList.toggle('fa-plus');
-      icon.classList.toggle('fa-minus');
-    },
-    /**
-     * Closes the currently active dropdown.
-     * Called when user clicks on a dropdown that is currently active.
-     */
-    closeActiveSettings(){
-      // Only 1 option should have a minus and the "show" and "active" attribute. We will toggle these off.
-      var icon = document.getElementsByClassName("fa-minus");
-      var dropdownContent = document.getElementsByClassName("active")[0];
-      if (icon.length > 0){
-        icon[0].classList.toggle('fa-plus');
-        icon[0].classList.toggle('fa-minus');
-        dropdownContent.classList.toggle('active');
-        dropdownContent.classList.toggle('show');
-      }
+    setClassesOnElem(elem, toAdd, toRemove) {
+      toAdd.forEach(c => elem.classList.add(c));
+      toRemove.forEach(c => elem.classList.remove(c));
     }
   },
   watch: {
